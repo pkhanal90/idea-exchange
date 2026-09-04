@@ -1,0 +1,428 @@
+// Idea Exchange — Prisma schema
+// Marketplace for buying/selling early-stage startup ideas (Flippa x M&A, for ideas)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Auth (NextAuth.js / Auth.js — Prisma adapter shape)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Users & roles
+// ─────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SELLER
+  INVESTOR
+  ADMIN
+}
+
+enum AccreditationStatus {
+  UNSUBMITTED
+  SELF_ATTESTED
+  // Reserved for a future real KYC/accreditation integration.
+  VERIFIED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+
+  role UserRole @default(SELLER)
+
+  // Profile
+  bio     String? @db.Text
+  company String?
+  title   String?
+  website String?
+
+  // Self-attested investor accreditation (not real KYC — see AccreditationStatus)
+  accreditationStatus     AccreditationStatus @default(UNSUBMITTED)
+  accreditationAttestedAt DateTime?
+
+  // Stripe Connect (seller payout) / Stripe Customer (buyer payment method)
+  stripeConnectAccountId String?
+  stripeConnectOnboarded Boolean @default(false)
+  stripeCustomerId       String?
+
+  createdAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  listings          Listing[]        @relation("SellerListings")
+  offersMade        Offer[]          @relation("BuyerOffers")
+  dealsAsSeller     Deal[]           @relation("SellerDeals")
+  dealsAsBuyer      Deal[]           @relation("BuyerDeals")
+  sentMessages      Message[]        @relation("SentMessages")
+  threadsAsSeller   MessageThread[]  @relation("MessageThreadSeller")
+  threadsAsBuyer    MessageThread[]  @relation("MessageThreadBuyer")
+  ndaAcceptances    NdaAcceptance[]
+  ratingsGiven      Rating[]         @relation("RatingsGiven")
+  ratingsReceived   Rating[]         @relation("RatingsReceived")
+  savedListings     SavedListing[]
+
+  @@index([role])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Listings
+// ─────────────────────────────────────────────────────────────────────────
+
+enum ListingStage {
+  CONCEPT
+  PROTOTYPE
+  TRACTION
+}
+
+enum ListingType {
+  FIXED_PRICE
+  AUCTION
+  EQUITY_ROYALTY
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  REJECTED
+  PUBLISHED
+  UNDER_OFFER
+  SOLD
+  ARCHIVED
+}
+
+enum IndustryCategory {
+  AI_ML
+  FINTECH
+  HEALTHTECH
+  ECOMMERCE
+  SAAS_B2B
+  CONSUMER_SOCIAL
+  MARKETPLACE
+  CLIMATE_ENERGY
+  EDTECH
+  DEVTOOLS
+  HARDWARE_IOT
+  BIOTECH
+  GAMING
+  OTHER
+}
+
+model Listing {
+  id String @id @default(cuid())
+
+  seller   User   @relation("SellerListings", fields: [sellerId], references: [id])
+  sellerId String
+
+  // Structured template
+  title             String
+  problemStatement  String @db.Text
+  proposedSolution  String @db.Text
+  targetMarket      String @db.Text
+  tamEstimate       Decimal? @db.Decimal(14, 2)
+  monetizationPlan  String @db.Text
+  stage             ListingStage
+  category          IndustryCategory
+
+  // Short public-facing teaser, shown pre-NDA
+  teaserSummary String @db.Text
+
+  // Listing type / pricing
+  listingType   ListingType
+  askingPrice   Decimal? @db.Decimal(14, 2) // FIXED_PRICE
+  reservePrice  Decimal? @db.Decimal(14, 2) // AUCTION
+  startingBid   Decimal? @db.Decimal(14, 2) // AUCTION
+  auctionEndsAt DateTime?                   // AUCTION
+  openToEquity  Boolean  @default(false)    // flag, can combine with either type above
+
+  pitchDeckUrl String?
+
+  status         ListingStatus @default(DRAFT)
+  rejectionNote  String?       @db.Text
+  publishedAt    DateTime?
+  soldAt         DateTime?
+
+  viewCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ndaAcceptances NdaAcceptance[]
+  offers         Offer[]
+  // One-to-many, not one-to-one: a cancelled deal must not permanently block
+  // a listing from ever getting a new deal from a later accepted offer.
+  deals          Deal[]
+  messageThreads MessageThread[]
+  bids           Bid[]
+  savedBy        SavedListing[]
+
+  @@index([status])
+  @@index([category])
+  @@index([stage])
+  @@index([listingType])
+}
+
+model SavedListing {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+}
+
+// Click-through NDA gate — must exist before a viewer can load full listing details.
+model NdaAcceptance {
+  id        String   @id @default(cuid())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  acceptedAt DateTime @default(now())
+  ipAddress String?
+
+  @@unique([listingId, userId])
+}
+
+// Auction bid history (separate from Offer, which covers negotiated / fixed-price / equity deals)
+model Bid {
+  id        String   @id @default(cuid())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+  bidderId  String
+  amount    Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Offers & deal flow
+// ─────────────────────────────────────────────────────────────────────────
+
+enum OfferType {
+  BUY_IT_NOW
+  AUCTION_BID
+  EQUITY_ROYALTY
+}
+
+enum OfferStatus {
+  PENDING
+  COUNTERED
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+  EXPIRED
+}
+
+// Which side proposed this particular offer in the counter chain — determines
+// who is allowed to respond to it (always the other party).
+enum OfferParty {
+  BUYER
+  SELLER
+}
+
+model Offer {
+  id String @id @default(cuid())
+
+  listing   Listing @relation(fields: [listingId], references: [id])
+  listingId String
+
+  buyer   User   @relation("BuyerOffers", fields: [buyerId], references: [id])
+  buyerId String
+
+  offerType  OfferType
+  status     OfferStatus @default(PENDING)
+  proposedBy OfferParty  @default(BUYER)
+
+  // Cash component
+  amount Decimal? @db.Decimal(14, 2)
+
+  // Equity/royalty component (optional, can combine with amount)
+  equityPercent  Decimal? @db.Decimal(5, 2)
+  royaltyPercent Decimal? @db.Decimal(5, 2)
+  royaltyTermMonths Int?
+
+  message String? @db.Text
+
+  // Self-referencing thread of counter-offers
+  parentOfferId String?
+  parentOffer   Offer?  @relation("OfferCounters", fields: [parentOfferId], references: [id])
+  counters      Offer[] @relation("OfferCounters")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  respondedAt DateTime?
+
+  deal Deal?
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+enum DealStage {
+  AGREEMENT_PENDING // offer accepted, terms being finalized
+  ESCROW_PENDING    // awaiting simulated escrow payment
+  ESCROW_HELD       // funds held in simulated escrow
+  IP_ASSIGNMENT_PENDING
+  COMPLETE
+  CANCELLED
+}
+
+model Deal {
+  id String @id @default(cuid())
+
+  listing   Listing @relation(fields: [listingId], references: [id])
+  listingId String
+
+  offer   Offer  @relation(fields: [offerId], references: [id])
+  offerId String @unique
+
+  seller   User   @relation("SellerDeals", fields: [sellerId], references: [id])
+  sellerId String
+  buyer    User   @relation("BuyerDeals", fields: [buyerId], references: [id])
+  buyerId  String
+
+  stage DealStage @default(AGREEMENT_PENDING)
+
+  finalAmount        Decimal? @db.Decimal(14, 2)
+  finalEquityPercent Decimal? @db.Decimal(5, 2)
+  finalRoyaltyPercent Decimal? @db.Decimal(5, 2)
+
+  // Simulated Stripe Connect escrow
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  escrowFundedAt          DateTime?
+  escrowReleasedAt        DateTime?
+
+  // Simulated IP assignment document (mocked, not a real legal vendor)
+  ipAssignmentDocUrl       String?
+  ipAssignmentGeneratedAt  DateTime?
+  ipAssignmentSignedAt     DateTime?
+
+  completedAt DateTime?
+  cancelledAt DateTime?
+  cancelReason String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ratings Rating[]
+
+  @@index([stage])
+  @@index([listingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Messaging (per-listing threads between a seller and a specific buyer)
+// ─────────────────────────────────────────────────────────────────────────
+
+model MessageThread {
+  id String @id @default(cuid())
+
+  listing   Listing @relation(fields: [listingId], references: [id])
+  listingId String
+
+  seller   User   @relation("MessageThreadSeller", fields: [sellerId], references: [id])
+  sellerId String
+  buyer    User   @relation("MessageThreadBuyer", fields: [buyerId], references: [id])
+  buyerId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@unique([listingId, buyerId])
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  thread   MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId String
+
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+  senderId String
+
+  body   String  @db.Text
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([threadId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Ratings (post-deal, seller <-> buyer)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Rating {
+  id String @id @default(cuid())
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String
+
+  rater     User   @relation("RatingsGiven", fields: [raterId], references: [id])
+  raterId   String
+  ratee     User   @relation("RatingsReceived", fields: [rateeId], references: [id])
+  rateeId   String
+
+  score   Int    // 1-5
+  comment String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([dealId, raterId])
+}
