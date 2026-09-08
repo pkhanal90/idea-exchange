@@ -37,7 +37,7 @@ export function DashboardShell({
                   href={item.href}
                   className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-ink-900 text-white"
+                      ? "bg-gradient-to-r from-accent-500 to-accent-700 text-white shadow-sm"
                       : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
                   }`}
                 >

@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form";
+import { LogoMark } from "@/components/layout/logo-mark";
 import { signInWithEmailAction, signInWithGoogleAction } from "@/app/auth/signin/actions";
 import { Handshake, Lock, ShieldCheck } from "lucide-react";
 
@@ -26,9 +27,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <div className="absolute -right-16 -top-16 h-80 w-80 rounded-full bg-accent-600/20 blur-3xl" />
 
         <div className="relative">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white text-sm font-bold text-ink-900">
-            I
-          </span>
+          <LogoMark />
         </div>
 
         <div className="relative">
@@ -54,10 +53,8 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
       <div className="flex flex-col justify-center px-6 py-16 sm:px-12 lg:px-16">
         <div className="mx-auto w-full max-w-sm">
-          <div className="lg:hidden">
-            <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-ink-900 text-white">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
+          <div className="flex justify-center lg:hidden">
+            <LogoMark size="md" className="h-10 w-10 text-sm" />
           </div>
           <h1 className="mt-4 text-xl font-semibold text-ink-900">Sign in to Idea Exchange</h1>
           <p className="mt-1.5 text-sm text-ink-500">

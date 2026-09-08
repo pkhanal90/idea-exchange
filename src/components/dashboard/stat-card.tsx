@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
 const STAT_TONE_CLASSES = {
-  ink: "bg-ink-100 text-ink-600",
-  success: "bg-success-50 text-success-700",
-  warning: "bg-warning-50 text-warning-700",
-  accent: "bg-accent-50 text-accent-700",
+  ink: "from-ink-500 to-ink-700",
+  success: "from-success-500 to-success-700",
+  warning: "from-warning-500 to-warning-700",
+  accent: "from-accent-500 to-accent-700",
 } as const;
 
 export function StatCard({
@@ -23,7 +23,12 @@ export function StatCard({
   return (
     <Card>
       <CardContent className="flex items-center gap-3 py-4">
-        <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", STAT_TONE_CLASSES[tone])}>
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
+            STAT_TONE_CLASSES[tone],
+          )}
+        >
           <Icon className="h-4.5 w-4.5" />
         </span>
         <div className="min-w-0">

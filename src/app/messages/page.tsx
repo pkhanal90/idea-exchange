@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { timeAgo, initials } from "@/lib/utils";
+import { cn, timeAgo, initials } from "@/lib/utils";
+import { avatarGradient } from "@/lib/avatar-gradient";
 import { ArrowLeft, Inbox, MessageSquare } from "lucide-react";
 
 export default async function MessagesInboxPage() {
@@ -80,7 +81,12 @@ export default async function MessagesInboxPage() {
               <Link key={thread.id} href={`/messages/${thread.id}`}>
                 <Card className="transition-colors hover:bg-ink-50">
                   <CardContent className="flex items-center gap-3 py-4">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-xs font-semibold text-white">
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
+                        avatarGradient(otherParty.id),
+                      )}
+                    >
                       {initials(otherParty.name ?? otherParty.email)}
                     </span>
                     <div className="min-w-0 flex-1">

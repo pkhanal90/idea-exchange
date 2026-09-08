@@ -117,7 +117,7 @@ export default async function DealRoomPage({ params, searchParams }: DealPagePro
                 <div
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
                     done || active
-                      ? "bg-ink-900 text-white"
+                      ? "bg-gradient-to-br from-accent-500 to-accent-700 text-white shadow-sm"
                       : "bg-ink-100 text-ink-400"
                   }`}
                 >

@@ -42,7 +42,9 @@ export function MessageThreadView({
                 <div
                   className={cn(
                     "max-w-[75%] rounded-xl px-3.5 py-2.5 text-sm",
-                    isMine ? "bg-ink-900 text-white" : "bg-ink-100 text-ink-800",
+                    isMine
+                      ? "bg-gradient-to-br from-accent-500 to-accent-700 text-white"
+                      : "bg-ink-100 text-ink-800",
                   )}
                 >
                   <p className="whitespace-pre-line">{m.body}</p>
