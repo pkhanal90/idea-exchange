@@ -6,7 +6,7 @@ import { SaveButton } from "@/components/listings/save-button";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { CATEGORY_VISUALS } from "@/lib/category-visuals";
 import { cn, formatCompactCurrency, timeAgo } from "@/lib/utils";
-import { Clock, Gauge } from "lucide-react";
+import { Clock, Eye, Flame, Gauge } from "lucide-react";
 import type { IndustryCategory, ListingStage, ListingType } from "@prisma/client";
 
 export interface ListingCardData {
@@ -22,14 +22,17 @@ export interface ListingCardData {
   auctionEndsAt: Date | string | null;
   openToEquity: boolean;
   createdAt: Date | string;
+  viewCount: number;
 }
 
 export function ListingCard({
   listing,
   isSaved = false,
+  isTrending = false,
 }: {
   listing: ListingCardData;
   isSaved?: boolean;
+  isTrending?: boolean;
 }) {
   const priceLabel =
     listing.listingType === "FIXED_PRICE"
@@ -58,6 +61,12 @@ export function ListingCard({
                 {CATEGORY_LABELS[listing.category]}
               </span>
               <StageBadge stage={listing.stage} />
+              {isTrending && (
+                <span className="flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-orange-600">
+                  <Flame className="h-3 w-3 fill-current" />
+                  Trending
+                </span>
+              )}
             </span>
           </div>
 
@@ -79,19 +88,25 @@ export function ListingCard({
             <span className="font-mono-nums text-sm font-semibold text-ink-900">
               {priceLabel}
             </span>
-            <span className="flex items-center gap-1 text-xs text-ink-400">
-              {listing.listingType === "AUCTION" && listing.auctionEndsAt ? (
-                <>
-                  <Clock className="h-3.5 w-3.5" />
-                  Ends soon
-                </>
-              ) : (
-                <>
-                  <Gauge className="h-3.5 w-3.5" />
-                  Listed {timeAgo(listing.createdAt)}
-                </>
-              )}
-            </span>
+            <div className="flex items-center gap-3 text-xs text-ink-400">
+              <span className="flex items-center gap-1" title={`${listing.viewCount} views`}>
+                <Eye className="h-3.5 w-3.5" />
+                {listing.viewCount}
+              </span>
+              <span className="flex items-center gap-1">
+                {listing.listingType === "AUCTION" && listing.auctionEndsAt ? (
+                  <>
+                    <Clock className="h-3.5 w-3.5" />
+                    Ends soon
+                  </>
+                ) : (
+                  <>
+                    <Gauge className="h-3.5 w-3.5" />
+                    Listed {timeAgo(listing.createdAt)}
+                  </>
+                )}
+              </span>
+            </div>
           </div>
         </Card>
       </Link>

@@ -233,6 +233,7 @@ model Listing {
   bids             Bid[]
   savedBy          SavedListing[]
   featuredListings FeaturedListing[]
+  views            ListingView[]
 
   @@index([status])
   @@index([category])
@@ -275,6 +276,21 @@ model Bid {
   createdAt DateTime @default(now())
 
   @@index([listingId])
+}
+
+// One row per de-duplicated view — powers Listing.viewCount (the fast, denormalized
+// counter used for display and trending sort) and doubles as the audit trail.
+// viewerKey is the signed-in user's id, or a hash of ip+user-agent for anonymous
+// visitors, so the same visitor reloading the page repeatedly only counts once
+// per dedupe window (see trackListingView).
+model ListingView {
+  id        String   @id @default(cuid())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+  viewerKey String
+  createdAt DateTime @default(now())
+
+  @@index([listingId, viewerKey, createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

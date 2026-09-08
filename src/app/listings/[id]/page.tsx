@@ -12,9 +12,11 @@ import { CATEGORY_LABELS, LISTING_TYPE_LABELS, STAGE_LABELS } from "@/lib/consta
 import { CATEGORY_VISUALS } from "@/lib/category-visuals";
 import { cn, formatCurrency, formatDate, initials, isPast } from "@/lib/utils";
 import { contactSellerAction } from "@/app/messages/actions";
+import { trackListingView } from "@/lib/listing-views";
 import {
   AlertTriangle,
   DollarSign,
+  Eye,
   FileText,
   Lightbulb,
   MessageSquare,
@@ -50,6 +52,11 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
   const isPublic = listing.status === "PUBLISHED" || listing.status === "SOLD" || listing.status === "UNDER_OFFER";
 
   if (!isPublic && !isOwner && !isAdmin) notFound();
+
+  // Only real, publicly-reachable views count toward the trending signal —
+  // a draft or pending-review listing is only visible to its owner/admins.
+  const viewIncrement = isPublic ? await trackListingView(id, listing.sellerId) : 0;
+  const displayViewCount = listing.viewCount + viewIncrement;
 
   const hasNda =
     Boolean(session?.user) &&
@@ -174,6 +181,10 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                 <div>
                   <p className="text-xs font-medium text-ink-400">Price</p>
                   <p className="font-mono-nums text-xl font-semibold text-ink-900">{priceLabel}</p>
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-ink-400">
+                    <Eye className="h-3.5 w-3.5" />
+                    {displayViewCount} view{displayViewCount === 1 ? "" : "s"}
+                  </p>
                 </div>
                 {listing.tamEstimate && (
                   <div>

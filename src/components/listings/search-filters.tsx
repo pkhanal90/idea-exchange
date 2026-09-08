@@ -8,14 +8,16 @@ export function SearchFilters({
   category,
   stage,
   price,
+  sort,
 }: {
   q?: string;
   category?: string;
   stage?: string;
   price?: string;
+  sort?: string;
 }) {
   return (
-    <form className="grid gap-3 rounded-xl border border-border bg-white p-4 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
+    <form className="grid gap-3 rounded-xl border border-border bg-white p-4 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] sm:items-end">
       <div>
         <label htmlFor="q" className="mb-1.5 block text-xs font-medium text-ink-500">
           Keyword
@@ -70,6 +72,16 @@ export function SearchFilters({
               {range.label}
             </option>
           ))}
+        </Select>
+      </div>
+
+      <div>
+        <label htmlFor="sort" className="mb-1.5 block text-xs font-medium text-ink-500">
+          Sort by
+        </label>
+        <Select id="sort" name="sort" defaultValue={sort ?? "trending"} className="min-w-36">
+          <option value="trending">Trending</option>
+          <option value="newest">Newest</option>
         </Select>
       </div>
 

@@ -14,11 +14,13 @@ interface ListingsPageProps {
     category?: string;
     stage?: string;
     price?: string;
+    sort?: string;
   }>;
 }
 
 export default async function ListingsPage({ searchParams }: ListingsPageProps) {
-  const { q, category, stage, price } = await searchParams;
+  const { q, category, stage, price, sort } = await searchParams;
+  const isTrendingSort = sort !== "newest";
 
   const range = PRICE_RANGES.find((r) => r.label === price);
 
@@ -50,7 +52,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     const session = await auth();
     listings = await prisma.listing.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: isTrendingSort
+        ? [{ viewCount: "desc" }, { createdAt: "desc" }]
+        : { createdAt: "desc" },
       take: 60,
     });
     savedIds = await getSavedListingIdSet(
@@ -71,7 +75,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         </p>
       </div>
 
-      <SearchFilters q={q} category={category} stage={stage} price={price} />
+      <SearchFilters q={q} category={category} stage={stage} price={price} sort={sort} />
 
       <div className="mt-8">
         {dbError ? (
@@ -88,8 +92,13 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
           <>
             <p className="mb-4 text-sm text-ink-400">{listings.length} listing(s)</p>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} isSaved={savedIds.has(listing.id)} />
+              {listings.map((listing, index) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  isSaved={savedIds.has(listing.id)}
+                  isTrending={isTrendingSort && index < 3 && listing.viewCount > 0}
+                />
               ))}
             </div>
           </>
