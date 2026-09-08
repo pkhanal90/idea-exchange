@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { prisma } from "@/lib/prisma";
-import type { UserRole } from "@prisma/client";
+import type { UserRole, UserStatus } from "@prisma/client";
 
 const hasEmailServer = Boolean(process.env.EMAIL_SERVER_HOST);
 
@@ -50,17 +50,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers,
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: UserRole }).role ?? "SELLER";
       }
-      if (trigger === "update" && token.id) {
+      // Re-read role/status from the DB on every request (not just at sign-in
+      // or an explicit `update()` trigger) so a role change or a ban/suspend
+      // takes effect on the user's very next request instead of waiting for
+      // the JWT to expire — this is what makes RBAC enforcement real rather
+      // than just a snapshot taken at login.
+      if (token.id) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true },
+          select: { role: true, status: true },
         });
-        if (fresh) token.role = fresh.role;
+        if (fresh) {
+          token.role = fresh.role;
+          token.status = fresh.status;
+        }
       }
       return token;
     },
@@ -68,6 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
+        session.user.status = token.status as UserStatus;
       }
       return session;
     },

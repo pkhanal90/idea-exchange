@@ -52,6 +52,13 @@ export default auth((req) => {
     return NextResponse.redirect(signInUrl);
   }
 
+  // A suspended/banned account is blocked here even mid-session — the jwt
+  // callback re-reads status from the DB on every request, so this reflects
+  // an admin action taken seconds ago, not just whatever was true at login.
+  if (req.auth.user.status !== "ACTIVE" && pathname !== "/account/suspended") {
+    return NextResponse.redirect(new URL("/account/suspended", req.nextUrl.origin));
+  }
+
   if (pathname.startsWith("/admin") && req.auth.user.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }

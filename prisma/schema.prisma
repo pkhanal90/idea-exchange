@@ -67,6 +67,12 @@ enum AccreditationStatus {
   VERIFIED
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -76,6 +82,12 @@ model User {
   passwordHash  String?
 
   role UserRole @default(SELLER)
+
+  // Moderation status — a suspended/banned user is blocked at the RBAC layer
+  // regardless of what a still-valid session JWT claims (see requireSession).
+  status       UserStatus @default(ACTIVE)
+  statusReason String?
+  statusSetAt  DateTime?
 
   // Profile
   bio     String? @db.Text
@@ -87,30 +99,42 @@ model User {
   accreditationStatus     AccreditationStatus @default(UNSUBMITTED)
   accreditationAttestedAt DateTime?
 
+  // TOTP 2FA — secret is only ever set once a setup code has been verified.
+  // Mandatory for ADMIN (enforced in the auth session gate), optional for others.
+  twoFactorSecret    String?
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorEnabledAt DateTime?
+
+  lastLoginAt DateTime?
+
   // Stripe Connect (seller payout) / Stripe Customer (buyer payment method)
   stripeConnectAccountId String?
   stripeConnectOnboarded Boolean @default(false)
   stripeCustomerId       String?
 
-  createdAt DateTime @updatedAt @default(now())
+  createdAt DateTime @default(now()) @updatedAt
   updatedAt DateTime @updatedAt
 
   accounts Account[]
   sessions Session[]
 
-  listings          Listing[]        @relation("SellerListings")
-  offersMade        Offer[]          @relation("BuyerOffers")
-  dealsAsSeller     Deal[]           @relation("SellerDeals")
-  dealsAsBuyer      Deal[]           @relation("BuyerDeals")
-  sentMessages      Message[]        @relation("SentMessages")
-  threadsAsSeller   MessageThread[]  @relation("MessageThreadSeller")
-  threadsAsBuyer    MessageThread[]  @relation("MessageThreadBuyer")
-  ndaAcceptances    NdaAcceptance[]
-  ratingsGiven      Rating[]         @relation("RatingsGiven")
-  ratingsReceived   Rating[]         @relation("RatingsReceived")
-  savedListings     SavedListing[]
+  listings                 Listing[]            @relation("SellerListings")
+  offersMade               Offer[]              @relation("BuyerOffers")
+  dealsAsSeller            Deal[]               @relation("SellerDeals")
+  dealsAsBuyer             Deal[]               @relation("BuyerDeals")
+  sentMessages             Message[]            @relation("SentMessages")
+  threadsAsSeller          MessageThread[]      @relation("MessageThreadSeller")
+  threadsAsBuyer           MessageThread[]      @relation("MessageThreadBuyer")
+  ndaAcceptances           NdaAcceptance[]
+  ratingsGiven             Rating[]             @relation("RatingsGiven")
+  ratingsReceived          Rating[]             @relation("RatingsReceived")
+  savedListings            SavedListing[]
+  auditLogEntries          AuditLog[]           @relation("AuditActor")
+  sponsoredPlacements      SponsoredPlacement[] @relation("SponsoredPlacementCreatedBy")
+  featuredListingPurchases FeaturedListing[]    @relation("FeaturedListingPurchasedBy")
 
   @@index([role])
+  @@index([status])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -163,51 +187,58 @@ model Listing {
   sellerId String
 
   // Structured template
-  title             String
-  problemStatement  String @db.Text
-  proposedSolution  String @db.Text
-  targetMarket      String @db.Text
-  tamEstimate       Decimal? @db.Decimal(14, 2)
-  monetizationPlan  String @db.Text
-  stage             ListingStage
-  category          IndustryCategory
+  title            String
+  problemStatement String           @db.Text
+  proposedSolution String           @db.Text
+  targetMarket     String           @db.Text
+  tamEstimate      Decimal?         @db.Decimal(14, 2)
+  monetizationPlan String           @db.Text
+  stage            ListingStage
+  category         IndustryCategory
 
   // Short public-facing teaser, shown pre-NDA
   teaserSummary String @db.Text
 
   // Listing type / pricing
   listingType   ListingType
-  askingPrice   Decimal? @db.Decimal(14, 2) // FIXED_PRICE
-  reservePrice  Decimal? @db.Decimal(14, 2) // AUCTION
-  startingBid   Decimal? @db.Decimal(14, 2) // AUCTION
-  auctionEndsAt DateTime?                   // AUCTION
-  openToEquity  Boolean  @default(false)    // flag, can combine with either type above
+  askingPrice   Decimal?    @db.Decimal(14, 2) // FIXED_PRICE
+  reservePrice  Decimal?    @db.Decimal(14, 2) // AUCTION
+  startingBid   Decimal?    @db.Decimal(14, 2) // AUCTION
+  auctionEndsAt DateTime? // AUCTION
+  openToEquity  Boolean     @default(false) // flag, can combine with either type above
 
   pitchDeckUrl String?
 
-  status         ListingStatus @default(DRAFT)
-  rejectionNote  String?       @db.Text
-  publishedAt    DateTime?
-  soldAt         DateTime?
+  status        ListingStatus @default(DRAFT)
+  rejectionNote String?       @db.Text
+  publishedAt   DateTime?
+  soldAt        DateTime?
+
+  // Pinned to the top of its category — either set directly by an admin or
+  // derived from an active FeaturedListing purchase.
+  isFeatured    Boolean   @default(false)
+  featuredUntil DateTime?
 
   viewCount Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ndaAcceptances NdaAcceptance[]
-  offers         Offer[]
+  ndaAcceptances   NdaAcceptance[]
+  offers           Offer[]
   // One-to-many, not one-to-one: a cancelled deal must not permanently block
   // a listing from ever getting a new deal from a later accepted offer.
-  deals          Deal[]
-  messageThreads MessageThread[]
-  bids           Bid[]
-  savedBy        SavedListing[]
+  deals            Deal[]
+  messageThreads   MessageThread[]
+  bids             Bid[]
+  savedBy          SavedListing[]
+  featuredListings FeaturedListing[]
 
   @@index([status])
   @@index([category])
   @@index([stage])
   @@index([listingType])
+  @@index([isFeatured])
 }
 
 model SavedListing {
@@ -223,13 +254,13 @@ model SavedListing {
 
 // Click-through NDA gate — must exist before a viewer can load full listing details.
 model NdaAcceptance {
-  id        String   @id @default(cuid())
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  id         String   @id @default(cuid())
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId  String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
   acceptedAt DateTime @default(now())
-  ipAddress String?
+  ipAddress  String?
 
   @@unique([listingId, userId])
 }
@@ -289,8 +320,8 @@ model Offer {
   amount Decimal? @db.Decimal(14, 2)
 
   // Equity/royalty component (optional, can combine with amount)
-  equityPercent  Decimal? @db.Decimal(5, 2)
-  royaltyPercent Decimal? @db.Decimal(5, 2)
+  equityPercent     Decimal? @db.Decimal(5, 2)
+  royaltyPercent    Decimal? @db.Decimal(5, 2)
   royaltyTermMonths Int?
 
   message String? @db.Text
@@ -300,8 +331,8 @@ model Offer {
   parentOffer   Offer?  @relation("OfferCounters", fields: [parentOfferId], references: [id])
   counters      Offer[] @relation("OfferCounters")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   respondedAt DateTime?
 
   deal Deal?
@@ -313,11 +344,12 @@ model Offer {
 
 enum DealStage {
   AGREEMENT_PENDING // offer accepted, terms being finalized
-  ESCROW_PENDING    // awaiting simulated escrow payment
-  ESCROW_HELD       // funds held in simulated escrow
+  ESCROW_PENDING // awaiting simulated escrow payment
+  ESCROW_HELD // funds held in simulated escrow
   IP_ASSIGNMENT_PENDING
   COMPLETE
   CANCELLED
+  DISPUTED // flagged by an admin for manual review — held out of the normal flow
 }
 
 model Deal {
@@ -336,8 +368,8 @@ model Deal {
 
   stage DealStage @default(AGREEMENT_PENDING)
 
-  finalAmount        Decimal? @db.Decimal(14, 2)
-  finalEquityPercent Decimal? @db.Decimal(5, 2)
+  finalAmount         Decimal? @db.Decimal(14, 2)
+  finalEquityPercent  Decimal? @db.Decimal(5, 2)
   finalRoyaltyPercent Decimal? @db.Decimal(5, 2)
 
   // Simulated Stripe Connect escrow
@@ -347,13 +379,19 @@ model Deal {
   escrowReleasedAt        DateTime?
 
   // Simulated IP assignment document (mocked, not a real legal vendor)
-  ipAssignmentDocUrl       String?
-  ipAssignmentGeneratedAt  DateTime?
-  ipAssignmentSignedAt     DateTime?
+  ipAssignmentDocUrl      String?
+  ipAssignmentGeneratedAt DateTime?
+  ipAssignmentSignedAt    DateTime?
 
-  completedAt DateTime?
-  cancelledAt DateTime?
-  cancelReason String? @db.Text
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?   @db.Text
+
+  // Admin oversight (manual intervention outside the normal buyer/seller flow)
+  disputedAt     DateTime?
+  disputeReason  String?   @db.Text
+  refundedAt     DateTime?
+  stripeRefundId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -396,7 +434,7 @@ model Message {
   sender   User   @relation("SentMessages", fields: [senderId], references: [id])
   senderId String
 
-  body   String  @db.Text
+  body   String    @db.Text
   readAt DateTime?
 
   createdAt DateTime @default(now())
@@ -414,15 +452,198 @@ model Rating {
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String
 
-  rater     User   @relation("RatingsGiven", fields: [raterId], references: [id])
-  raterId   String
-  ratee     User   @relation("RatingsReceived", fields: [rateeId], references: [id])
-  rateeId   String
+  rater   User   @relation("RatingsGiven", fields: [raterId], references: [id])
+  raterId String
+  ratee   User   @relation("RatingsReceived", fields: [rateeId], references: [id])
+  rateeId String
 
-  score   Int    // 1-5
+  score   Int // 1-5
   comment String? @db.Text
 
   createdAt DateTime @default(now())
 
   @@unique([dealId, raterId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Admin: audit log, moderation, platform settings
+// ─────────────────────────────────────────────────────────────────────────
+
+enum AuditAction {
+  LISTING_APPROVED
+  LISTING_REJECTED
+  LISTING_FEATURED
+  LISTING_UNFEATURED
+  LISTING_REMOVED
+  USER_SUSPENDED
+  USER_BANNED
+  USER_REACTIVATED
+  USER_ACCREDITATION_UPDATED
+  DEAL_CANCELLED
+  DEAL_REFUNDED
+  DEAL_MARKED_DISPUTED
+  SETTINGS_UPDATED
+  SPONSORED_PLACEMENT_CREATED
+  SPONSORED_PLACEMENT_UPDATED
+  SPONSORED_PLACEMENT_REMOVED
+}
+
+// Immutable trail of every admin action — who, what, when, and (where relevant)
+// a before/after snapshot of the affected record. Written by requireAdminAction()
+// alongside the action itself, never edited afterward.
+model AuditLog {
+  id String @id @default(cuid())
+
+  actor   User   @relation("AuditActor", fields: [actorId], references: [id])
+  actorId String
+
+  action     AuditAction
+  targetType String // e.g. "Listing", "User", "Deal", "PlatformSettings"
+  targetId   String?
+
+  beforeState Json?
+  afterState  Json?
+  metadata    Json?
+  ipAddress   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+enum RateLimitAction {
+  SIGN_IN
+  SIGN_UP
+  PASSWORD_RESET
+}
+
+// Sliding-window brute-force guard for auth endpoints. Rows older than the
+// window are cheap to prune; kept in Postgres (rather than adding a Redis
+// dependency) since this app's traffic doesn't yet need a dedicated cache tier.
+model RateLimitAttempt {
+  id         String          @id @default(cuid())
+  identifier String // email or IP, depending on the endpoint
+  action     RateLimitAction
+  createdAt  DateTime        @default(now())
+
+  @@index([identifier, action, createdAt])
+}
+
+enum SponsoredPlacementSlot {
+  HOMEPAGE
+  CATEGORY_PAGE
+}
+
+// Admin-managed ad unit. Impression/click counters are incremented server-side
+// so they can't be inflated by client-side replay.
+model SponsoredPlacement {
+  id String @id @default(cuid())
+
+  title    String
+  body     String? @db.Text
+  imageUrl String?
+  linkUrl  String
+
+  slot     SponsoredPlacementSlot
+  category IndustryCategory? // only meaningful when slot = CATEGORY_PAGE
+
+  isActive Boolean  @default(true)
+  startsAt DateTime
+  endsAt   DateTime
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+
+  createdBy   User   @relation("SponsoredPlacementCreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slot, isActive])
+}
+
+// A seller's paid purchase of featured placement for one listing. Approving
+// (webhook-confirmed) sets Listing.isFeatured / featuredUntil for its duration.
+model FeaturedListing {
+  id String @id @default(cuid())
+
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  purchasedBy   User   @relation("FeaturedListingPurchasedBy", fields: [purchasedById], references: [id])
+  purchasedById String
+
+  stripeCheckoutSessionId String?
+  amountPaidCents         Int
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+// Singleton row (id is always "default") of platform-wide, admin-editable
+// settings — no code deploy required to change commission or featured pricing.
+model PlatformSettings {
+  id String @id @default("default")
+
+  commissionPercent           Decimal @default(10) @db.Decimal(5, 2)
+  featuredListingPriceCents   Int     @default(4900)
+  featuredListingDurationDays Int     @default(14)
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  categoryOverrides CategoryCommissionOverride[]
+}
+
+// Per-category commission override — absence of a row means the platform
+// default (PlatformSettings.commissionPercent) applies.
+model CategoryCommissionOverride {
+  id String @id @default(cuid())
+
+  settings   PlatformSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  settingsId String
+
+  category          IndustryCategory @unique
+  commissionPercent Decimal          @db.Decimal(5, 2)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Analytics — first-party event log powering the internal /admin dashboard.
+// Kept independent of any third-party analytics SDK so the funnel/cohort
+// numbers stay queryable directly against our own database.
+// ─────────────────────────────────────────────────────────────────────────
+
+enum AnalyticsEventName {
+  SIGNUP
+  LISTING_CREATED
+  LISTING_PUBLISHED
+  NDA_ACCEPTED
+  OFFER_SUBMITTED
+  DEAL_COMPLETED
+  SPONSORED_IMPRESSION
+  SPONSORED_CLICK
+}
+
+model AnalyticsEvent {
+  id   String             @id @default(cuid())
+  name AnalyticsEventName
+
+  // Intentionally not a foreign key — events should outlive account deletion.
+  userId String?
+  role   UserRole?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userId])
 }
