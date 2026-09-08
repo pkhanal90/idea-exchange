@@ -5,7 +5,7 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { initials } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
-import { ChevronDown, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { ChevronDown, Handshake, LayoutDashboard, LogOut, ShieldCheck, Store } from "lucide-react";
 
 export function UserMenu({
   name,
@@ -67,14 +67,36 @@ export function UserMenu({
             Dashboard
           </Link>
           {role === "ADMIN" && (
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-ink-50"
-              onClick={() => setOpen(false)}
-            >
-              <ShieldCheck className="h-4 w-4" />
-              Moderation queue
-            </Link>
+            <>
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-ink-50"
+                onClick={() => setOpen(false)}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Moderation queue
+              </Link>
+              <div className="my-1 border-t border-border" />
+              <p className="px-3.5 pb-1 pt-1.5 text-xs font-medium uppercase tracking-wide text-ink-400">
+                Your account
+              </p>
+              <Link
+                href="/dashboard/seller"
+                className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-ink-50"
+                onClick={() => setOpen(false)}
+              >
+                <Store className="h-4 w-4" />
+                Seller dashboard
+              </Link>
+              <Link
+                href="/dashboard/investor"
+                className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-ink-50"
+                onClick={() => setOpen(false)}
+              >
+                <Handshake className="h-4 w-4" />
+                Investor dashboard
+              </Link>
+            </>
           )}
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
