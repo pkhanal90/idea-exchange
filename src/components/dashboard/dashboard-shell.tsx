@@ -41,7 +41,7 @@ export function DashboardShell({
       <Container className="relative grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
         <aside>
           <p
-            className={`px-2 text-xs font-semibold uppercase tracking-wide ${visual.chipText}`}
+            className={`px-2 text-xs font-semibold uppercase tracking-wide ${visual.eyebrowText}`}
           >
             {eyebrow}
           </p>

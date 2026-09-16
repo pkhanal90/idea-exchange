@@ -13,7 +13,8 @@ export const ROLE_VISUALS: Record<
     gradient: string; // nav active-state / avatar ring background
     ring: string; // avatar ring color
     chipBg: string;
-    chipText: string;
+    chipText: string; // for the badge chip — assumes it's paired with chipBg
+    eyebrowText: string; // for the sidebar label standing alone on pageBg
     pageBg: string; // dashboard page background wash
     glowA: string; // primary blurred background glow
     glowB: string; // secondary blurred background glow
@@ -26,6 +27,7 @@ export const ROLE_VISUALS: Record<
     ring: "ring-accent-400",
     chipBg: "bg-accent-50",
     chipText: "text-accent-700",
+    eyebrowText: "text-accent-700",
     pageBg: "bg-accent-50/60",
     glowA: "bg-accent-400/25",
     glowB: "bg-accent-600/15",
@@ -37,6 +39,7 @@ export const ROLE_VISUALS: Record<
     ring: "ring-sky-400",
     chipBg: "bg-sky-50",
     chipText: "text-sky-700",
+    eyebrowText: "text-sky-700",
     pageBg: "bg-sky-50/60",
     glowA: "bg-sky-400/25",
     glowB: "bg-sky-600/15",
@@ -48,6 +51,7 @@ export const ROLE_VISUALS: Record<
     ring: "ring-amber-400",
     chipBg: "bg-amber-50",
     chipText: "text-amber-700",
+    eyebrowText: "text-amber-700",
     pageBg: "bg-amber-50/60",
     glowA: "bg-amber-400/25",
     glowB: "bg-amber-600/15",
@@ -59,6 +63,7 @@ export const ROLE_VISUALS: Record<
     ring: "ring-ink-400",
     chipBg: "bg-ink-900",
     chipText: "text-white",
+    eyebrowText: "text-ink-500",
     pageBg: "bg-ink-100/50",
     glowA: "bg-ink-400/15",
     glowB: "bg-ink-600/10",
