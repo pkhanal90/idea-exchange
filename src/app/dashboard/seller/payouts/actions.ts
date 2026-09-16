@@ -10,7 +10,10 @@ export async function createConnectOnboardingLinkAction() {
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/seller/payouts");
   if (!stripeEnabled) return;
 
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: session.user.id },
+    select: { id: true, email: true, stripeConnectAccountId: true },
+  });
 
   let accountId = user.stripeConnectAccountId;
   if (!accountId) {

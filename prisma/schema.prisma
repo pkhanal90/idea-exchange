@@ -214,7 +214,9 @@ model Listing {
   auctionEndsAt DateTime? // AUCTION
   openToEquity  Boolean     @default(false) // flag, can combine with either type above
 
-  pitchDeckUrl String?
+  // Blob store pathname, not a public URL — served through the authenticated
+  // /api/listings/[id]/pitch-deck route, which re-checks NDA acceptance.
+  pitchDeckKey String?
 
   status        ListingStatus @default(DRAFT)
   rejectionNote String?       @db.Text

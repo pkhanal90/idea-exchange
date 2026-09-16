@@ -22,7 +22,10 @@ export default async function PayoutsPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/seller/payouts");
 
-  let user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
+  let user = await prisma.user.findUniqueOrThrow({
+    where: { id: session.user.id },
+    select: { id: true, stripeConnectAccountId: true, stripeConnectOnboarded: true },
+  });
 
   // Local dev usually doesn't have the Stripe webhook forwarded, so re-check
   // onboarding status live from Stripe whenever we have an account on file.
@@ -32,6 +35,7 @@ export default async function PayoutsPage() {
       user = await prisma.user.update({
         where: { id: user.id },
         data: { stripeConnectOnboarded: true },
+        select: { id: true, stripeConnectAccountId: true, stripeConnectOnboarded: true },
       });
     }
   }

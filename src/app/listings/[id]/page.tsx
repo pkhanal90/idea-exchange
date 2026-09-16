@@ -158,9 +158,9 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                 <DetailSection icon={Lightbulb} title="Proposed solution" body={listing.proposedSolution} />
                 <DetailSection icon={Users} title="Target market" body={listing.targetMarket} />
                 <DetailSection icon={DollarSign} title="Monetization plan" body={listing.monetizationPlan} />
-                {listing.pitchDeckUrl && (
+                {listing.pitchDeckKey && (
                   <a
-                    href={listing.pitchDeckUrl}
+                    href={`/api/listings/${listing.id}/pitch-deck`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-medium text-ink-700 hover:bg-ink-50"
@@ -186,7 +186,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                     {displayViewCount} view{displayViewCount === 1 ? "" : "s"}
                   </p>
                 </div>
-                {listing.tamEstimate && (
+                {hasNda && listing.tamEstimate && (
                   <div>
                     <p className="text-xs font-medium text-ink-400">Estimated TAM</p>
                     <p className="font-mono-nums text-sm font-medium text-ink-700">

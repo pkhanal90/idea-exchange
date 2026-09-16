@@ -1,8 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { put } from "@vercel/blob";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +14,7 @@ export interface CreateListingState {
 
 const MAX_PITCH_DECK_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_PITCH_DECK_TYPES = new Set(["application/pdf"]);
+const PDF_MAGIC_BYTES = Buffer.from("%PDF-", "ascii");
 
 export async function createListingAction(
   _prevState: CreateListingState,
@@ -42,7 +42,7 @@ export async function createListingAction(
   const data = parsed.data;
   const intent = formData.get("intent") === "submit" ? "submit" : "draft";
 
-  let pitchDeckUrl: string | undefined;
+  let pitchDeckKey: string | undefined;
   const pitchDeck = formData.get("pitchDeck");
   if (pitchDeck instanceof File && pitchDeck.size > 0) {
     if (!ALLOWED_PITCH_DECK_TYPES.has(pitchDeck.type)) {
@@ -51,11 +51,24 @@ export async function createListingAction(
     if (pitchDeck.size > MAX_PITCH_DECK_BYTES) {
       return { message: "Pitch deck must be smaller than 10MB." };
     }
-    const dir = path.join(process.cwd(), "public", "uploads", "pitch-decks");
-    await mkdir(dir, { recursive: true });
-    const filename = `${randomUUID()}.pdf`;
-    await writeFile(path.join(dir, filename), Buffer.from(await pitchDeck.arrayBuffer()));
-    pitchDeckUrl = `/uploads/pitch-decks/${filename}`;
+    const bytes = Buffer.from(await pitchDeck.arrayBuffer());
+    // The browser-supplied MIME type above is just metadata the client
+    // attached — verify the file actually starts with a PDF header rather
+    // than trusting it.
+    if (!bytes.subarray(0, PDF_MAGIC_BYTES.length).equals(PDF_MAGIC_BYTES)) {
+      return { message: "That file doesn't look like a valid PDF." };
+    }
+    // Stored in a private Blob store and served only through
+    // /api/listings/[id]/pitch-deck, which re-checks NDA acceptance on every
+    // request — the key here is never exposed to the client directly, so a
+    // leaked link can't be used to read the deck, and access can be revoked
+    // by revoking the NDA record.
+    const blob = await put(`pitch-decks/${randomUUID()}.pdf`, bytes, {
+      access: "private",
+      contentType: "application/pdf",
+      addRandomSuffix: false,
+    });
+    pitchDeckKey = blob.pathname;
   }
 
   const listing = await prisma.listing.create({
@@ -79,7 +92,7 @@ export async function createListingAction(
           ? new Date(data.auctionEndsAt)
           : undefined,
       openToEquity: data.listingType === "EQUITY_ROYALTY" ? true : Boolean(data.openToEquity),
-      pitchDeckUrl,
+      pitchDeckKey,
       status: intent === "submit" ? "PENDING_REVIEW" : "DRAFT",
     },
   });
