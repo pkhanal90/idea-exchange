@@ -29,8 +29,16 @@ export function DashboardShell({
   const visual = ROLE_VISUALS[tone];
 
   return (
-    <div className="border-t border-border bg-ink-50/50">
-      <Container className="grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
+    <div className={`relative overflow-hidden border-t border-border ${visual.pageBg}`}>
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full blur-3xl ${visual.glowA}`}
+      />
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full blur-3xl ${visual.glowB}`}
+      />
+      <Container className="relative grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
         <aside>
           <p
             className={`px-2 text-xs font-semibold uppercase tracking-wide ${visual.chipText}`}
