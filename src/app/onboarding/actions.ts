@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ROLE_VISUALS } from "@/lib/role-visuals";
@@ -22,5 +23,10 @@ export async function chooseRoleAction(role: UserRole) {
     data: { role, roleSelectedAt: new Date() },
   });
 
+  // The navbar (role badge, avatar ring) lives in the root layout, which
+  // Next.js's router cache would otherwise keep serving from before this
+  // account had a role at all — bust it so the new role shows up everywhere,
+  // not just on the page this action redirects to.
+  revalidatePath("/", "layout");
   redirect(ROLE_VISUALS[role].dashboardHref);
 }
