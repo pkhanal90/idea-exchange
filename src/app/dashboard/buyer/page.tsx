@@ -1,77 +1,41 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getBuyerSideDashboardData } from "@/lib/offers";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { ListingCard } from "@/components/listings/listing-card";
 import { OfferChainRow } from "@/components/offers/offer-chain-row";
-import { ButtonLink } from "@/components/ui/button";
-import {
-  BadgeCheck,
-  Bookmark,
-  Handshake,
-  LayoutGrid,
-  MessageSquare,
-  ShieldQuestion,
-  Unlock,
-} from "lucide-react";
+import { Bookmark, Handshake, LayoutGrid, MessageSquare, Unlock } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard/investor", label: "Deal Room", icon: LayoutGrid },
-  { href: "/dashboard/investor/accreditation", label: "Accreditation", icon: BadgeCheck },
+  { href: "/dashboard/buyer", label: "My Offers", icon: LayoutGrid },
   { href: "/saved", label: "Saved", icon: Bookmark },
   { href: "/messages", label: "Messages", icon: MessageSquare },
 ];
 
-export default async function InvestorDashboardPage() {
+export default async function BuyerDashboardPage() {
   const session = await auth();
-  if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/investor");
+  if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/buyer");
 
-  const [{ ndaAcceptances, savedListings, offerChains }, user] = await Promise.all([
-    getBuyerSideDashboardData(session.user.id),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { accreditationStatus: true },
-    }),
-  ]);
-
-  const isAccredited = user?.accreditationStatus === "SELF_ATTESTED";
+  const { ndaAcceptances, savedListings, offerChains } = await getBuyerSideDashboardData(
+    session.user.id,
+  );
   const savedIds = new Set(savedListings.map((s) => s.listingId));
 
   return (
-    <DashboardShell
-      navItems={navItems}
-      activeHref="/dashboard/investor"
-      eyebrow="Investor"
-      tone="INVESTOR"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-ink-900">Deal Room</h1>
-          <p className="mt-1 text-sm text-ink-500">
-            Listings you&apos;ve unlocked or saved, and your open offers.
-          </p>
-        </div>
-        {!isAccredited && (
-          <ButtonLink href="/dashboard/investor/accreditation" size="sm" variant="outline">
-            <ShieldQuestion className="h-4 w-4" />
-            Complete accreditation
-          </ButtonLink>
-        )}
+    <DashboardShell navItems={navItems} activeHref="/dashboard/buyer" eyebrow="Buyer" tone="BUYER">
+      <div>
+        <h1 className="text-xl font-semibold text-ink-900">My Offers</h1>
+        <p className="mt-1 text-sm text-ink-500">
+          Listings you&apos;ve unlocked or saved, and every offer you&apos;ve made.
+        </p>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-3 gap-4">
         <StatCard label="Unlocked" value={ndaAcceptances.length} icon={Unlock} tone="accent" />
         <StatCard label="Offers" value={offerChains.length} icon={Handshake} tone="warning" />
         <StatCard label="Saved" value={savedListings.length} icon={Bookmark} tone="ink" />
-        <StatCard
-          label={isAccredited ? "Accredited" : "Not accredited"}
-          value={isAccredited ? "Yes" : "No"}
-          icon={BadgeCheck}
-          tone={isAccredited ? "success" : "warning"}
-        />
       </div>
 
       <section className="mt-10">

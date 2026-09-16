@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import { ROLE_VISUALS } from "@/lib/role-visuals";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { UserRole } from "@prisma/client";
 
 export interface NavItem {
   href: string;
@@ -13,18 +15,26 @@ export function DashboardShell({
   navItems,
   activeHref,
   eyebrow,
+  tone = "SELLER",
   children,
 }: {
   navItems: NavItem[];
   activeHref: string;
   eyebrow: string;
+  // Which account type's color identity this dashboard wears — defaults to
+  // the seller/original accent so callers that don't pass one are unchanged.
+  tone?: UserRole;
   children: ReactNode;
 }) {
+  const visual = ROLE_VISUALS[tone];
+
   return (
     <div className="border-t border-border bg-ink-50/50">
       <Container className="grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
         <aside>
-          <p className="px-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
+          <p
+            className={`px-2 text-xs font-semibold uppercase tracking-wide ${visual.chipText}`}
+          >
             {eyebrow}
           </p>
           <nav className="mt-3 space-y-0.5">
@@ -37,7 +47,7 @@ export function DashboardShell({
                   href={item.href}
                   className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-gradient-to-r from-accent-500 to-accent-700 text-white shadow-sm"
+                      ? `bg-gradient-to-r text-white shadow-sm ${visual.gradient}`
                       : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
                   }`}
                 >

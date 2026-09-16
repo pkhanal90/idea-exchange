@@ -7,5 +7,6 @@ export default async function DashboardIndexPage() {
 
   if (session.user.role === "ADMIN") redirect("/admin");
   if (session.user.role === "INVESTOR") redirect("/dashboard/investor");
+  if (session.user.role === "BUYER") redirect("/dashboard/buyer");
   redirect("/dashboard/seller");
 }

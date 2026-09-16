@@ -32,6 +32,7 @@ export default async function AccreditationPage() {
       navItems={navItems}
       activeHref="/dashboard/investor/accreditation"
       eyebrow="Investor"
+      tone="INVESTOR"
     >
       <h1 className="text-xl font-semibold text-ink-900">Accreditation</h1>
       <p className="mt-1 text-sm text-ink-500">

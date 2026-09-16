@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils";
 import { BadgeCheck, ShieldOff, ShieldX, Undo2 } from "lucide-react";
 import type { User, UserRole, UserStatus } from "@prisma/client";
 
-const ROLE_TONE: Record<UserRole, "ink" | "accent" | "success"> = {
+const ROLE_TONE: Record<UserRole, "ink" | "accent" | "warning" | "success"> = {
   SELLER: "ink",
-  INVESTOR: "accent",
+  BUYER: "accent",
+  INVESTOR: "warning",
   ADMIN: "success",
 };
 

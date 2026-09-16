@@ -59,6 +59,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/account/suspended", req.nextUrl.origin));
   }
 
+  // Brand-new accounts haven't chosen Buyer/Seller/Investor yet — send them
+  // to do that before anything else in a protected area. Existing accounts
+  // were backfilled with a real roleSelectedAt so this never fires for them.
+  if (!req.auth.user.hasSelectedRole && pathname !== "/onboarding") {
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
+  }
+
   if (pathname.startsWith("/admin") && req.auth.user.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }

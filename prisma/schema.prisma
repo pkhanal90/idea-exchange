@@ -56,6 +56,7 @@ model VerificationToken {
 
 enum UserRole {
   SELLER
+  BUYER
   INVESTOR
   ADMIN
 }
@@ -82,6 +83,12 @@ model User {
   passwordHash  String?
 
   role UserRole @default(SELLER)
+
+  // Null until the user has been through /onboarding once — gates the
+  // one-time "choose your account type" screen (see src/proxy.ts). Backfilled
+  // to a real timestamp for every account that predates this field so no
+  // existing user is ever bounced into onboarding.
+  roleSelectedAt DateTime?
 
   // Moderation status — a suspended/banned user is blocked at the RBAC layer
   // regardless of what a still-valid session JWT claims (see requireSession).

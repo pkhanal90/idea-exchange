@@ -33,6 +33,28 @@ export async function getLatestOfferPerChain(where: Prisma.OfferWhereInput) {
   );
 }
 
+// Shared by the Buyer and Investor dashboards — both are just "the acquiring
+// side" of a deal and want the same three things: what they've unlocked,
+// what they've offered on, and what they've saved. Investor additionally
+// layers accreditation on top of this.
+export async function getBuyerSideDashboardData(userId: string) {
+  const [ndaAcceptances, savedListings, offerChains] = await Promise.all([
+    prisma.ndaAcceptance.findMany({
+      where: { userId },
+      include: { listing: true },
+      orderBy: { acceptedAt: "desc" },
+    }),
+    prisma.savedListing.findMany({
+      where: { userId },
+      include: { listing: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    getLatestOfferPerChain({ buyerId: userId }),
+  ]);
+
+  return { ndaAcceptances, savedListings, offerChains };
+}
+
 // Shared by the negotiated-offer accept flow and the auction "accept highest
 // bid" flow — both end the same way: mark the offer accepted, decline every
 // other pending offer on the listing, and open a Deal.

@@ -48,7 +48,7 @@ export default async function SellerDashboardPage() {
   };
 
   return (
-    <DashboardShell navItems={navItems} activeHref="/dashboard/seller" eyebrow="Seller">
+    <DashboardShell navItems={navItems} activeHref="/dashboard/seller" eyebrow="Seller" tone="SELLER">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">My Listings</h1>

@@ -7,6 +7,11 @@ declare module "next-auth" {
       id: string;
       role: UserRole;
       status: UserStatus;
+      // Whether the user has been through /onboarding — deliberately a
+      // boolean rather than the underlying roleSelectedAt timestamp: a Date
+      // doesn't survive next-auth's JWT type machinery cleanly, and nothing
+      // outside auth.ts needs the actual timestamp, just yes/no.
+      hasSelectedRole: boolean;
     } & DefaultSession["user"];
   }
 
@@ -21,5 +26,6 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: UserRole;
     status?: UserStatus;
+    hasSelectedRole?: boolean;
   }
 }
