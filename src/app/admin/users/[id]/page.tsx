@@ -45,7 +45,7 @@ export default async function AdminUserDetailPage({ params }: AdminUserDetailPag
   ]);
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/users" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/users" eyebrow="Admin" tone="ADMIN">
       <Link
         href="/admin/users"
         className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-900"

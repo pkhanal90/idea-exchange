@@ -63,7 +63,7 @@ export default async function AdminAuditLogPage({ searchParams }: AdminAuditLogP
   });
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/audit-log" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/audit-log" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Audit Log</h1>
       <p className="mt-1 text-sm text-ink-500">
         Every admin action, with who took it, when, and — where relevant — a before/after

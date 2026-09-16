@@ -4,7 +4,7 @@ import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
 
 export default function AdminSettingsPage() {
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/settings" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/settings" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Platform Settings</h1>
       <p className="mt-1 text-sm text-ink-500">
         Commission rate, per-category overrides, featured-listing pricing, and categories —

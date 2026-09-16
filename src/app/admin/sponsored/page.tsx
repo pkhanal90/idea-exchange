@@ -4,7 +4,7 @@ import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
 
 export default function AdminSponsoredPage() {
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/sponsored" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/sponsored" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Sponsored Placements</h1>
       <p className="mt-1 text-sm text-ink-500">
         Manage ad units shown on the homepage and category pages.

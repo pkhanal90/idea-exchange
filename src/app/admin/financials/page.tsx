@@ -4,7 +4,7 @@ import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
 
 export default function AdminFinancialsPage() {
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/financials" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/financials" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Financials</h1>
       <p className="mt-1 text-sm text-ink-500">
         Transaction volume, commission earned, and payout status.

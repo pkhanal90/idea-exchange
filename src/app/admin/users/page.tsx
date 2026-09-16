@@ -42,7 +42,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
   });
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/users" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/users" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Users</h1>
       <p className="mt-1 text-sm text-ink-500">
         Search, filter, suspend or ban accounts, and manage investor accreditation.

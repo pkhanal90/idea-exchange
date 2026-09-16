@@ -4,7 +4,7 @@ import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
 
 export default function AdminListingsPage() {
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/listings" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/listings" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Listings</h1>
       <p className="mt-1 text-sm text-ink-500">
         Every listing regardless of status, with edit/feature/remove controls.

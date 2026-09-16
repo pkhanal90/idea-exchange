@@ -4,7 +4,7 @@ import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
 
 export default function AdminDealsPage() {
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/deals" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/deals" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Deals</h1>
       <p className="mt-1 text-sm text-ink-500">
         Oversight across every deal — cancel, refund via Stripe, or mark disputed.

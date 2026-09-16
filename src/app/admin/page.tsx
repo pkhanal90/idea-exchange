@@ -12,7 +12,7 @@ export default async function AdminModerationPage() {
   });
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin" eyebrow="Admin">
+    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin" eyebrow="Admin" tone="ADMIN">
       <h1 className="text-xl font-semibold text-ink-900">Moderation Queue</h1>
       <p className="mt-1 text-sm text-ink-500">
         Review structured briefs before they become publicly searchable. Approving
