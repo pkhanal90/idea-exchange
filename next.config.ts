@@ -14,7 +14,11 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  // Both the apex and www hosts serve the app (the apex 308s to www) — an
+  // internal redirect built from the incoming request's origin can still
+  // point at the apex even once the browser is on www, which a bare 'self'
+  // would block as cross-origin for Next's background link prefetching.
+  "connect-src 'self' https://ideaexchange.io https://www.ideaexchange.io",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
