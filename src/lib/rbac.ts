@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
+import { STEP_UP_COOKIE, isStepUpValid } from "@/lib/totp-session";
 import type { UserRole } from "@prisma/client";
 
 export class ForbiddenError extends Error {}
@@ -22,4 +24,20 @@ export async function requireRole(allowed: UserRole[]) {
 
 export function requireAdmin() {
   return requireRole(["ADMIN"]);
+}
+
+// requireAdmin() only re-checks role/status — enough for the setup/verify
+// actions themselves, since satisfying the TOTP step-up is what they're for.
+// Every *other* admin mutation should call this instead: it additionally
+// requires a fresh step-up cookie, closing the same server-action bypass
+// that requireAdmin() closes for role (proxy.ts can't be trusted alone here
+// since a server action is reachable by its own endpoint regardless of which
+// page's middleware gate would normally apply to that path).
+export async function requireVerifiedAdmin() {
+  const session = await requireAdmin();
+  const stepUpCookie = (await cookies()).get(STEP_UP_COOKIE)?.value;
+  if (!(await isStepUpValid(stepUpCookie, session.user.id))) {
+    throw new ForbiddenError("Two-factor verification required");
+  }
+  return session;
 }

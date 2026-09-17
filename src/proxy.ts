@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { STEP_UP_COOKIE, isStepUpValid } from "@/lib/totp-session";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -32,7 +33,7 @@ function requireSitePassword() {
   });
 }
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
 
   // Stripe can't provide the site password, so its webhook stays reachable.
@@ -66,8 +67,27 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
   }
 
-  if (pathname.startsWith("/admin") && req.auth.user.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  if (pathname.startsWith("/admin")) {
+    if (req.auth.user.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+    }
+
+    // Mandatory enrollment — an admin account with no TOTP set up yet can't
+    // reach any other admin page until it's enabled.
+    if (!req.auth.user.twoFactorEnabled && pathname !== "/admin/setup-2fa") {
+      return NextResponse.redirect(new URL("/admin/setup-2fa", req.nextUrl.origin));
+    }
+
+    // Already enrolled — this browser still needs a fresh-enough TOTP
+    // challenge (see src/lib/totp-session.ts for what "fresh enough" means).
+    if (req.auth.user.twoFactorEnabled && pathname !== "/admin/setup-2fa" && pathname !== "/admin/verify-2fa") {
+      const stepUpCookie = req.cookies.get(STEP_UP_COOKIE)?.value;
+      if (!(await isStepUpValid(stepUpCookie, req.auth.user.id))) {
+        const verifyUrl = new URL("/admin/verify-2fa", req.nextUrl.origin);
+        verifyUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(verifyUrl);
+      }
+    }
   }
 
   return NextResponse.next();

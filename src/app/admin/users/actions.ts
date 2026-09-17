@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/rbac";
+import { requireVerifiedAdmin } from "@/lib/rbac";
 import { recordAuditLog } from "@/lib/audit-log";
 import type { UserStatus } from "@prisma/client";
 
@@ -13,7 +13,7 @@ const STATUS_TO_ACTION = {
 } as const;
 
 export async function setUserStatusAction(userId: string, status: UserStatus, formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireVerifiedAdmin();
 
   if (userId === session.user.id) {
     throw new Error("You can't change your own account status.");
@@ -51,7 +51,7 @@ export async function setAccreditationStatusAction(
   userId: string,
   verified: boolean,
 ) {
-  const session = await requireAdmin();
+  const session = await requireVerifiedAdmin();
 
   const target = await prisma.user.findUniqueOrThrow({
     where: { id: userId },

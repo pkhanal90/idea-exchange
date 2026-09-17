@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/rbac";
+import { requireVerifiedAdmin } from "@/lib/rbac";
 import { recordAuditLog } from "@/lib/audit-log";
 
 export async function approveListingAction(listingId: string) {
-  const session = await requireAdmin();
+  const session = await requireVerifiedAdmin();
   const before = await prisma.listing.findUnique({
     where: { id: listingId },
     select: { status: true, rejectionNote: true },
@@ -30,7 +30,7 @@ export async function approveListingAction(listingId: string) {
 }
 
 export async function rejectListingAction(listingId: string, formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireVerifiedAdmin();
   const note = String(formData.get("note") ?? "").trim();
   const before = await prisma.listing.findUnique({
     where: { id: listingId },

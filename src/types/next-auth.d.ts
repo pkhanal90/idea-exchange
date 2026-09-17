@@ -12,6 +12,7 @@ declare module "next-auth" {
       // doesn't survive next-auth's JWT type machinery cleanly, and nothing
       // outside auth.ts needs the actual timestamp, just yes/no.
       hasSelectedRole: boolean;
+      twoFactorEnabled: boolean;
     } & DefaultSession["user"];
   }
 
@@ -27,5 +28,6 @@ declare module "next-auth/jwt" {
     role?: UserRole;
     status?: UserStatus;
     hasSelectedRole?: boolean;
+    twoFactorEnabled?: boolean;
   }
 }
