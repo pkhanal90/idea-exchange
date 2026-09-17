@@ -541,8 +541,7 @@ model AuditLog {
 
 enum RateLimitAction {
   SIGN_IN
-  SIGN_UP
-  PASSWORD_RESET
+  TWO_FACTOR_VERIFY
 }
 
 // Sliding-window brute-force guard for auth endpoints. Rows older than the

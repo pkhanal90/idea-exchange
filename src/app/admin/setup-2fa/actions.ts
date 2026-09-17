@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { verifyCode } from "@/lib/totp";
 import { signStepUpToken, STEP_UP_COOKIE, STEP_UP_COOKIE_MAX_AGE } from "@/lib/totp-session";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export interface SetupTwoFactorState {
   error?: string;
@@ -25,6 +26,19 @@ export async function confirmTwoFactorSetupAction(
   if (!base32Secret || !code) {
     return { error: "Enter the 6-digit code from your authenticator app." };
   }
+
+  const { allowed, retryAfterSeconds } = await checkRateLimit({
+    identifier: `user:${session.user.id}`,
+    action: "TWO_FACTOR_VERIFY",
+    limit: 5,
+    windowSeconds: 300,
+  });
+  if (!allowed) {
+    return {
+      error: `Too many attempts. Wait ${Math.ceil(retryAfterSeconds / 60)} minutes and try again.`,
+    };
+  }
+
   if (!verifyCode(base32Secret, code)) {
     return { error: "That code didn't match. Check the time on your device and try again." };
   }

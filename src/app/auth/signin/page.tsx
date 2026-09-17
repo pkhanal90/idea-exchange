@@ -63,7 +63,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
           <Card className="mt-8">
             <CardContent className="space-y-5">
-              {error && (
+              {error === "rate_limited" && (
+                <p className="rounded-lg border border-warning-500/30 bg-warning-50 px-3.5 py-2.5 text-sm text-warning-700">
+                  Too many sign-in attempts. Wait a few minutes and try again.
+                </p>
+              )}
+              {error && error !== "rate_limited" && (
                 <p className="rounded-lg border border-danger-500/30 bg-danger-50 px-3.5 py-2.5 text-sm text-danger-700">
                   Sign-in failed. Please try again.
                 </p>

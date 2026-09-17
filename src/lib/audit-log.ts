@@ -1,5 +1,5 @@
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { getClientIp } from "@/lib/request-ip";
 import type { AuditAction, Prisma } from "@prisma/client";
 
 export async function recordAuditLog({
@@ -19,8 +19,7 @@ export async function recordAuditLog({
   afterState?: Prisma.InputJsonValue;
   metadata?: Prisma.InputJsonValue;
 }) {
-  const headerList = await headers();
-  const ipAddress = headerList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ipAddress = await getClientIp();
 
   await prisma.auditLog.create({
     data: {
