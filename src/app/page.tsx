@@ -17,10 +17,12 @@ import {
   BadgeCheck,
   FileCheck2,
   Handshake,
+  Landmark,
   Lock,
   Quote,
   Search,
   ShieldCheck,
+  Star,
   TrendingUp,
 } from "lucide-react";
 
@@ -398,26 +400,45 @@ export default async function HomePage() {
 
       {/* Trust */}
       <section id="trust" className="bg-white py-20">
-        <Container className="grid gap-8 sm:grid-cols-3">
-          {[
-            {
-              title: "Self-attested accreditation",
-              body: "Buyers who qualify as accredited investors can flag that status — a signal for sellers, not a requirement to make an offer.",
-            },
-            {
-              title: "Escrow-style holds",
-              body: "Deal funds move through Stripe Connect in test mode, structured as a hold-and-release rather than instant capture.",
-            },
-            {
-              title: "Two-sided ratings",
-              body: "Sellers and buyers rate each other after every completed deal, building a track record over time.",
-            },
-          ].map(({ title, body }) => (
-            <div key={title} className="rounded-xl border border-border p-6">
-              <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-500">{body}</p>
-            </div>
-          ))}
+        <Container>
+          <h2 className="font-heading text-center text-2xl font-semibold text-ink-900 sm:text-3xl">
+            Built-in trust and safety
+          </h2>
+          <div className="mx-auto mt-12 grid max-w-5xl gap-6 sm:grid-cols-3">
+            {[
+              {
+                icon: BadgeCheck,
+                title: "Self-attested accreditation",
+                body: "Buyers who qualify as accredited investors can flag that status — a signal for sellers, not a requirement to make an offer.",
+                gradient: "from-amber-500 to-amber-700",
+              },
+              {
+                icon: Landmark,
+                title: "Escrow-style holds",
+                body: "Deal funds move through Stripe Connect in test mode, structured as a hold-and-release rather than instant capture.",
+                gradient: "from-blue-500 to-blue-700",
+              },
+              {
+                icon: Star,
+                title: "Two-sided ratings",
+                body: "Sellers and buyers rate each other after every completed deal, building a track record over time.",
+                gradient: "from-rose-500 to-rose-700",
+              },
+            ].map(({ icon: Icon, title, body, gradient }) => (
+              <div key={title} className="rounded-xl border border-border p-6">
+                <span
+                  className={cn(
+                    "inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
+                    gradient,
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 text-sm font-semibold text-ink-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-500">{body}</p>
+              </div>
+            ))}
+          </div>
         </Container>
       </section>
     </>
