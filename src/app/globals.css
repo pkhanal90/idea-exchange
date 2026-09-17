@@ -103,3 +103,29 @@ body {
     linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
   background-size: 40px 40px;
 }
+
+/* Slow auto-scroll for the hero showcase's real screenshots — pauses at the
+   top and bottom of each pass so the still frame is readable, not just a
+   blur in transit. -100% is relative to the image's own rendered height, so
+   "+ var(--hero-frame-h)" lands its bottom edge exactly at the frame's
+   bottom regardless of the image's actual aspect ratio. */
+@keyframes hero-shot-scroll {
+  0%,
+  18% {
+    transform: translateY(0);
+  }
+  82%,
+  100% {
+    transform: translateY(calc(-100% + var(--hero-frame-h)));
+  }
+}
+
+.animate-hero-scroll {
+  animation: hero-shot-scroll var(--hero-scroll-duration, 7s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-scroll {
+    animation: none;
+  }
+}
