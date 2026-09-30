@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { acceptOfferAndCreateDeal } from "@/lib/offers";
 import { bidSchema, type BidActionState } from "@/lib/validation/bid";
+import { sendNewBidEmail } from "@/lib/notifications/offer-emails";
 
 export async function acceptNdaAction(listingId: string) {
   const session = await auth();
@@ -37,7 +38,10 @@ export async function placeBidAction(
   const parsed = bidSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid bid" };
 
-  const listing = await prisma.listing.findUniqueOrThrow({ where: { id: listingId } });
+  const listing = await prisma.listing.findUniqueOrThrow({
+    where: { id: listingId },
+    include: { seller: { select: { name: true, email: true } } },
+  });
   if (listing.sellerId === session.user.id) return { error: "You can't bid on your own listing." };
   if (listing.listingType !== "AUCTION" || listing.status !== "PUBLISHED") {
     return { error: "This auction isn't accepting bids right now." };
@@ -58,6 +62,8 @@ export async function placeBidAction(
   await prisma.bid.create({
     data: { listingId, bidderId: session.user.id, amount: parsed.data.amount },
   });
+
+  await sendNewBidEmail(listing.seller, listing, parsed.data.amount);
 
   revalidatePath(`/listings/${listingId}`);
   return {};

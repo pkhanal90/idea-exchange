@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { sendDealStartedEmail } from "@/lib/notifications/offer-emails";
 import type { Prisma } from "@prisma/client";
 
 // An offer "chain" is every counter-offer exchanged between one buyer and one
@@ -59,11 +60,14 @@ export async function getBuyerSideDashboardData(userId: string) {
 // bid" flow — both end the same way: mark the offer accepted, decline every
 // other pending offer on the listing, and open a Deal.
 export async function acceptOfferAndCreateDeal(offerId: string) {
-  return prisma.$transaction(async (tx) => {
+  const deal = await prisma.$transaction(async (tx) => {
     const offer = await tx.offer.update({
       where: { id: offerId },
       data: { status: "ACCEPTED", respondedAt: new Date() },
-      include: { listing: true },
+      include: {
+        listing: { include: { seller: { select: { name: true, email: true } } } },
+        buyer: { select: { name: true, email: true } },
+      },
     });
 
     await tx.offer.updateMany({
@@ -88,6 +92,15 @@ export async function acceptOfferAndCreateDeal(offerId: string) {
       data: { status: "UNDER_OFFER" },
     });
 
-    return deal;
+    return { deal, offer };
   });
+
+  // Both parties should hear about it, regardless of which side triggered
+  // the acceptance (a negotiated accept, or a seller accepting the top bid).
+  await Promise.all([
+    sendDealStartedEmail(deal.offer.listing.seller, deal.offer.listing, deal.deal.id),
+    sendDealStartedEmail(deal.offer.buyer, deal.offer.listing, deal.deal.id),
+  ]);
+
+  return deal.deal;
 }
