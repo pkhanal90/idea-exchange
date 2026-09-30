@@ -223,6 +223,13 @@ model Listing {
   publishedAt   DateTime?
   soldAt        DateTime?
 
+  // Set when the seller reviews and confirms the generated NDA that will
+  // gate this listing's full details — required before it can be submitted
+  // for review. Not itself a signature record (that's NdaAcceptance, one
+  // row per buyer); this is the seller's one-time acknowledgment of the
+  // document buyers will be asked to sign.
+  sellerNdaAcknowledgedAt DateTime?
+
   // Pinned to the top of its category — either set directly by an admin or
   // derived from an active FeaturedListing purchase.
   isFeatured    Boolean   @default(false)

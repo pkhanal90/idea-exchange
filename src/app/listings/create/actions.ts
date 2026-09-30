@@ -45,6 +45,11 @@ export async function createListingAction(
 
   const data = parsed.data;
   const intent = formData.get("intent") === "submit" ? "submit" : "draft";
+  const ndaAcknowledged = formData.get("ndaAcknowledged") === "true";
+
+  if (intent === "submit" && !ndaAcknowledged) {
+    return { message: "Review and accept the NDA that will protect your listing before submitting." };
+  }
 
   let pitchDeckKey: string | undefined;
   const pitchDeck = formData.get("pitchDeck");
@@ -98,6 +103,7 @@ export async function createListingAction(
       openToEquity: data.listingType === "EQUITY_ROYALTY" ? true : Boolean(data.openToEquity),
       pitchDeckKey,
       status: intent === "submit" ? "PENDING_REVIEW" : "DRAFT",
+      sellerNdaAcknowledgedAt: intent === "submit" ? new Date() : undefined,
     },
   });
 

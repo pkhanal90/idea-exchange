@@ -58,12 +58,3 @@ export const PRICE_RANGES = [
   { label: "$250k – $1M", min: 250_000, max: 1_000_000 },
   { label: "$1M+", min: 1_000_000, max: undefined },
 ] as const;
-
-export const NDA_TERMS = `By clicking "I Agree" below, you acknowledge that you are entering into a
-mutual non-disclosure agreement with the seller of this listing, effective as of the date of
-acceptance. You agree that any confidential information disclosed in the full listing details —
-including but not limited to the proposed solution, technical approach, financial projections,
-and go-to-market strategy — will be used solely to evaluate a potential acquisition or investment,
-will not be disclosed to third parties, and will not be used to develop a competing product or
-service. This is a simulated agreement for prototype purposes and does not constitute a binding
-legal contract.`;

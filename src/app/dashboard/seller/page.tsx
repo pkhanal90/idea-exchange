@@ -5,11 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { ButtonLink, Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { ListingStatusBadge, ListingTypeBadge } from "@/components/listings/badges";
 import { CategoryIcon } from "@/components/listings/category-icon";
+import { SubmitForReviewButton } from "@/components/listings/submit-for-review-button";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { submitListingForReviewAction } from "@/app/dashboard/seller/actions";
 import {
   Bookmark,
   CreditCard,
@@ -111,11 +111,7 @@ export default async function SellerDashboardPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {listing.status === "DRAFT" && (
-                    <form action={submitListingForReviewAction.bind(null, listing.id)}>
-                      <Button type="submit" size="sm" variant="secondary">
-                        Submit for review
-                      </Button>
-                    </form>
+                    <SubmitForReviewButton listingId={listing.id} listingTitle={listing.title} />
                   )}
                   <ButtonLink href={`/listings/${listing.id}`} size="sm" variant="outline">
                     <Eye className="h-3.5 w-3.5" />

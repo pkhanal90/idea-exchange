@@ -36,7 +36,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
   const listing = await prisma.listing.findUnique({
     where: { id },
     include: {
-      seller: { select: { id: true, name: true, company: true, image: true } },
+      seller: { select: { id: true, name: true, email: true, company: true, image: true } },
       deals: {
         where: { stage: { not: "CANCELLED" } },
         orderBy: { createdAt: "desc" },
@@ -171,7 +171,12 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                 )}
               </>
             ) : (
-              <NdaGate listingId={listing.id} />
+              <NdaGate
+                listingId={listing.id}
+                listingTitle={listing.title}
+                disclosingParty={listing.seller.company ?? listing.seller.name ?? "The seller"}
+                receivingParty={session?.user?.name ?? session?.user?.email ?? "The undersigned"}
+              />
             )}
           </div>
 

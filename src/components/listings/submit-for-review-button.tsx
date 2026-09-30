@@ -2,25 +2,21 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { acceptNdaAction } from "@/app/listings/[id]/actions";
+import { submitListingForReviewAction } from "@/app/dashboard/seller/actions";
 import { Button } from "@/components/ui/button";
 import { NdaDocument } from "@/components/legal/nda-document";
-import { Lock, X } from "lucide-react";
+import { X } from "lucide-react";
 
-export function NdaGate({
+export function SubmitForReviewButton({
   listingId,
   listingTitle,
-  disclosingParty,
-  receivingParty,
 }: {
   listingId: string;
   listingTitle: string;
-  disclosingParty: string;
-  receivingParty: string;
 }) {
   const [open, setOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const boundAction = acceptNdaAction.bind(null, listingId);
+  const boundAction = submitListingForReviewAction.bind(null, listingId);
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -28,19 +24,9 @@ export function NdaGate({
   });
 
   return (
-    <div className="rounded-xl border border-dashed border-border bg-ink-50 p-8 text-center">
-      <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-ink-900 text-white">
-        <Lock className="h-5 w-5" />
-      </span>
-      <h3 className="mt-4 text-base font-semibold text-ink-900">
-        Full details are NDA-protected
-      </h3>
-      <p className="mx-auto mt-1.5 max-w-md text-sm text-ink-500">
-        Accept this listing&apos;s NDA to unlock the problem statement, proposed solution,
-        target market sizing, monetization plan, and any pitch deck.
-      </p>
-      <Button className="mt-5" onClick={() => setOpen(true)}>
-        Review &amp; accept NDA
+    <>
+      <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>
+        Submit for review
       </Button>
 
       {open && (
@@ -53,10 +39,9 @@ export function NdaGate({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h4 className="text-sm font-semibold text-ink-900">
-                Confidentiality &amp; Non-Disclosure Agreement
-              </h4>
+              <h4 className="text-sm font-semibold text-ink-900">Review your listing&apos;s NDA</h4>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="text-ink-400 hover:text-ink-700"
                 aria-label="Close"
@@ -65,11 +50,15 @@ export function NdaGate({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
+              <p className="mb-4 rounded-lg bg-ink-50 px-3.5 py-2.5 text-xs text-ink-500">
+                This is the confidentiality agreement every buyer will be asked to accept before
+                seeing this listing&apos;s full details.
+              </p>
               <NdaDocument
                 listingTitle={listingTitle}
                 listingId={listingId}
-                disclosingParty={disclosingParty}
-                receivingParty={receivingParty}
+                disclosingParty="You (the seller)"
+                receivingParty="Each buyer who requests full access"
                 date={today}
               />
             </div>
@@ -85,27 +74,28 @@ export function NdaGate({
                   onChange={(e) => setAgreed(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-border text-accent-600 focus:ring-accent-500"
                 />
-                I have read and agree to the terms of this NDA.
+                I&apos;ve reviewed this NDA and want it to protect my listing.
               </label>
+              <input type="hidden" name="ndaAcknowledged" value={agreed ? "true" : ""} />
               <div className="mt-4 flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <AgreeButton disabled={!agreed} />
+                <ConfirmButton disabled={!agreed} />
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
-function AgreeButton({ disabled }: { disabled: boolean }) {
+function ConfirmButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="sm" disabled={disabled || pending}>
-      {pending ? "Unlocking…" : "I Agree & Continue"}
+      {pending ? "Submitting…" : "I Agree & Submit for Review"}
     </Button>
   );
 }

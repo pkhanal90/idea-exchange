@@ -7,8 +7,9 @@ import { Label, Input, Textarea, Select, FieldError, FieldHint } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CategoryIcon } from "@/components/listings/category-icon";
+import { NdaDocument } from "@/components/legal/nda-document";
 import { CATEGORY_LABELS, STAGE_DESCRIPTIONS, STAGE_LABELS } from "@/lib/constants";
-import { DollarSign, Lightbulb, ShieldCheck, UploadCloud, type LucideIcon } from "lucide-react";
+import { DollarSign, Lightbulb, ShieldCheck, UploadCloud, X, type LucideIcon } from "lucide-react";
 import type { IndustryCategory } from "@prisma/client";
 
 const initialState: CreateListingState = {};
@@ -20,6 +21,14 @@ export function CreateListingForm() {
   );
   const [openToEquity, setOpenToEquity] = useState(false);
   const [category, setCategory] = useState<IndustryCategory | "">("");
+  const [title, setTitle] = useState("");
+  const [ndaModalOpen, setNdaModalOpen] = useState(false);
+  const [ndaAgreed, setNdaAgreed] = useState(false);
+  const today = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   const errors = state.errors ?? {};
 
@@ -42,7 +51,13 @@ export function CreateListingForm() {
         <CardContent className="space-y-5">
           <div>
             <Label htmlFor="title">Title</Label>
-            <Input id="title" name="title" placeholder="e.g. AI-powered co-pilot for freight brokers" />
+            <Input
+              id="title"
+              name="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. AI-powered co-pilot for freight brokers"
+            />
             <FieldError>{errors.title}</FieldError>
           </div>
 
@@ -218,10 +233,70 @@ export function CreateListingForm() {
         <SubmitButton intent="draft" variant="outline">
           Save as draft
         </SubmitButton>
-        <SubmitButton intent="submit" variant="primary">
+        <Button
+          type="button"
+          variant="primary"
+          className="w-full sm:w-auto"
+          onClick={() => setNdaModalOpen(true)}
+        >
           Submit for review
-        </SubmitButton>
+        </Button>
       </div>
+
+      {ndaModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/50 p-4"
+          onClick={() => setNdaModalOpen(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h4 className="text-sm font-semibold text-ink-900">Review your listing&apos;s NDA</h4>
+              <button
+                type="button"
+                onClick={() => setNdaModalOpen(false)}
+                className="text-ink-400 hover:text-ink-700"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <p className="mb-4 rounded-lg bg-ink-50 px-3.5 py-2.5 text-xs text-ink-500">
+                This is the confidentiality agreement every buyer will be asked to accept before
+                seeing your full listing details — it&apos;s generated automatically from your
+                listing title.
+              </p>
+              <NdaDocument
+                listingTitle={title}
+                disclosingParty="You (the seller)"
+                receivingParty="Each buyer who requests full access"
+                date={today}
+              />
+            </div>
+            <div className="border-t border-border px-5 py-4">
+              <label className="flex items-start gap-2 text-sm text-ink-700">
+                <input
+                  type="checkbox"
+                  checked={ndaAgreed}
+                  onChange={(e) => setNdaAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-accent-600 focus:ring-accent-500"
+                />
+                I&apos;ve reviewed this NDA and want it to protect my listing.
+              </label>
+              <input type="hidden" name="ndaAcknowledged" value={ndaAgreed ? "true" : ""} />
+              <div className="mt-4 flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setNdaModalOpen(false)}>
+                  Cancel
+                </Button>
+                <ConfirmSubmitButton disabled={!ndaAgreed} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
@@ -277,6 +352,15 @@ function SubmitButton({
   return (
     <Button type="submit" name="intent" value={intent} variant={variant} disabled={pending} className="w-full sm:w-auto">
       {pending ? "Saving…" : children}
+    </Button>
+  );
+}
+
+function ConfirmSubmitButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" name="intent" value="submit" size="sm" disabled={disabled || pending}>
+      {pending ? "Submitting…" : "I Agree & Submit for Review"}
     </Button>
   );
 }
