@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { sendMessageAction } from "@/app/messages/actions";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +54,7 @@ export function MessageThreadView({
                       isMine ? "text-white/60" : "text-ink-400",
                     )}
                   >
-                    {formatDate(m.createdAt)}
+                    {formatDateTime(m.createdAt)}
                   </p>
                 </div>
               </div>
@@ -75,6 +75,7 @@ export function MessageThreadView({
           name="body"
           required
           rows={2}
+          maxLength={5000}
           placeholder="Write a message…"
           className="w-full flex-1 resize-none rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm placeholder:text-ink-400 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100"
         />

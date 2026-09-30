@@ -51,6 +51,19 @@ export function formatDate(value: Date | string | null | undefined) {
   }).format(d);
 }
 
+// Includes time of day — formatDate alone is ambiguous for a chat thread,
+// where several messages routinely land on the same date.
+export function formatDateTime(value: Date | string | null | undefined) {
+  if (!value) return "—";
+  const d = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(d);
+}
+
 export function timeAgo(value: Date | string | null | undefined) {
   if (!value) return "—";
   const d = typeof value === "string" ? new Date(value) : value;
