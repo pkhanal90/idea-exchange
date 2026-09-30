@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  sendListingSubmittedEmail,
+  sendNewSubmissionAdminAlert,
+} from "@/lib/notifications/listing-emails";
 
 export async function submitListingForReviewAction(listingId: string) {
   const session = await auth();
@@ -15,6 +19,10 @@ export async function submitListingForReviewAction(listingId: string) {
     where: { id: listingId },
     data: { status: "PENDING_REVIEW" },
   });
+
+  const seller = { name: session.user.name ?? null, email: session.user.email ?? null };
+  await sendListingSubmittedEmail(seller, listing);
+  await sendNewSubmissionAdminAlert(listing, seller);
 
   revalidatePath("/dashboard/seller");
 }

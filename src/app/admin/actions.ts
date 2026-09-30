@@ -4,12 +4,18 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireVerifiedAdmin } from "@/lib/rbac";
 import { recordAuditLog } from "@/lib/audit-log";
+import { sendListingApprovedEmail, sendListingRejectedEmail } from "@/lib/notifications/listing-emails";
 
 export async function approveListingAction(listingId: string) {
   const session = await requireVerifiedAdmin();
   const before = await prisma.listing.findUnique({
     where: { id: listingId },
-    select: { status: true, rejectionNote: true },
+    select: {
+      status: true,
+      rejectionNote: true,
+      title: true,
+      seller: { select: { name: true, email: true } },
+    },
   });
 
   await prisma.listing.update({
@@ -22,9 +28,13 @@ export async function approveListingAction(listingId: string) {
     action: "LISTING_APPROVED",
     targetType: "Listing",
     targetId: listingId,
-    beforeState: before ?? undefined,
+    beforeState: before ? { status: before.status, rejectionNote: before.rejectionNote } : undefined,
     afterState: { status: "PUBLISHED" },
   });
+
+  if (before) {
+    await sendListingApprovedEmail(before.seller, { id: listingId, title: before.title });
+  }
 
   revalidatePath("/admin");
 }
@@ -34,7 +44,12 @@ export async function rejectListingAction(listingId: string, formData: FormData)
   const note = String(formData.get("note") ?? "").trim();
   const before = await prisma.listing.findUnique({
     where: { id: listingId },
-    select: { status: true, rejectionNote: true },
+    select: {
+      status: true,
+      rejectionNote: true,
+      title: true,
+      seller: { select: { name: true, email: true } },
+    },
   });
 
   const rejectionNote = note || "Does not meet listing guidelines.";
@@ -48,9 +63,13 @@ export async function rejectListingAction(listingId: string, formData: FormData)
     action: "LISTING_REJECTED",
     targetType: "Listing",
     targetId: listingId,
-    beforeState: before ?? undefined,
+    beforeState: before ? { status: before.status, rejectionNote: before.rejectionNote } : undefined,
     afterState: { status: "REJECTED", rejectionNote },
   });
+
+  if (before) {
+    await sendListingRejectedEmail(before.seller, { id: listingId, title: before.title }, rejectionNote);
+  }
 
   revalidatePath("/admin");
 }

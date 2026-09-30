@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { listingSchema, type ListingFieldErrors } from "@/lib/validation/listing";
+import {
+  sendListingSubmittedEmail,
+  sendNewSubmissionAdminAlert,
+} from "@/lib/notifications/listing-emails";
 
 export interface CreateListingState {
   errors?: ListingFieldErrors;
@@ -96,6 +100,12 @@ export async function createListingAction(
       status: intent === "submit" ? "PENDING_REVIEW" : "DRAFT",
     },
   });
+
+  if (listing.status === "PENDING_REVIEW") {
+    const seller = { name: session.user.name ?? null, email: session.user.email ?? null };
+    await sendListingSubmittedEmail(seller, listing);
+    await sendNewSubmissionAdminAlert(listing, seller);
+  }
 
   redirect(`/listings/${listing.id}`);
 }
