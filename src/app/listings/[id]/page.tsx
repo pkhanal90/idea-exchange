@@ -210,7 +210,8 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                     auctionEndsAt={listing.auctionEndsAt?.toISOString() ?? null}
                     hasEnded={isPast(listing.auctionEndsAt)}
                     isOwner={isOwner}
-                    canBid={Boolean(session?.user) && !isOwner}
+                    canBid={Boolean(session?.user) && !isOwner && hasNda}
+                    needsNda={Boolean(session?.user) && !isOwner && !hasNda}
                   />
                 )}
 
@@ -238,9 +239,15 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                           View your offer
                         </ButtonLink>
                       ) : session?.user ? (
-                        <ButtonLink href={`/listings/${listing.id}/offer`} className="w-full">
-                          Make an offer
-                        </ButtonLink>
+                        hasNda ? (
+                          <ButtonLink href={`/listings/${listing.id}/offer`} className="w-full">
+                            Make an offer
+                          </ButtonLink>
+                        ) : (
+                          <p className="rounded-lg border border-dashed border-border px-3.5 py-2.5 text-center text-xs text-ink-400">
+                            Accept the NDA above to make an offer
+                          </p>
+                        )
                       ) : (
                         <ButtonLink href={`/auth/signin?callbackUrl=/listings/${listing.id}/offer`} className="w-full">
                           Sign in to make an offer

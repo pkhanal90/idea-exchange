@@ -24,6 +24,11 @@ export default async function MakeOfferPage({ params }: OfferPageProps) {
   if (listing.listingType === "AUCTION") redirect(`/listings/${id}`);
   if (listing.status !== "PUBLISHED") redirect(`/listings/${id}`);
 
+  const hasNda = await prisma.ndaAcceptance.findUnique({
+    where: { listingId_userId: { listingId: id, userId: session.user.id } },
+  });
+  if (!hasNda) redirect(`/listings/${id}`);
+
   const boundAction = createOfferAction.bind(null, listing.id);
 
   return (

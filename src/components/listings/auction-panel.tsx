@@ -17,6 +17,7 @@ export function AuctionPanel({
   hasEnded,
   isOwner,
   canBid,
+  needsNda = false,
 }: {
   listingId: string;
   startingBid: unknown;
@@ -27,6 +28,7 @@ export function AuctionPanel({
   hasEnded: boolean;
   isOwner: boolean;
   canBid: boolean;
+  needsNda?: boolean;
 }) {
   const [state, formAction] = useActionState(placeBidAction.bind(null, listingId), {});
 
@@ -74,6 +76,10 @@ export function AuctionPanel({
         </form>
       ) : hasEnded ? (
         <p className="text-sm text-ink-500">This auction has ended.</p>
+      ) : needsNda ? (
+        <p className="rounded-lg border border-dashed border-border bg-white px-3.5 py-2.5 text-center text-xs text-ink-400">
+          Accept the NDA above to place a bid
+        </p>
       ) : null}
     </div>
   );

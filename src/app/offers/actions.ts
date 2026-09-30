@@ -53,6 +53,15 @@ export async function createOfferAction(
     return { message: "This listing isn't accepting new offers right now." };
   }
 
+  // Applies to every role that can make an offer (Buyer, Investor) — seeing
+  // full diligence materials before proposing terms isn't optional.
+  const hasNda = await prisma.ndaAcceptance.findUnique({
+    where: { listingId_userId: { listingId, userId: session.user.id } },
+  });
+  if (!hasNda) {
+    return { message: "Accept this listing's NDA before making an offer." };
+  }
+
   const { errors, data } = parseTerms(formData);
   if (!data) return { errors, message: "Please fix the highlighted fields." };
 

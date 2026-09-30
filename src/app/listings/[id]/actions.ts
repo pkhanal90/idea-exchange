@@ -50,6 +50,13 @@ export async function placeBidAction(
     return { error: "This auction has ended." };
   }
 
+  // A bid is a form of offer — same requirement as createOfferAction: no
+  // proposing terms before the full diligence materials have been seen.
+  const hasNda = await prisma.ndaAcceptance.findUnique({
+    where: { listingId_userId: { listingId, userId: session.user.id } },
+  });
+  if (!hasNda) return { error: "Accept this listing's NDA before placing a bid." };
+
   const topBid = await prisma.bid.findFirst({
     where: { listingId },
     orderBy: { amount: "desc" },
