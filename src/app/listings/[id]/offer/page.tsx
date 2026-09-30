@@ -29,6 +29,11 @@ export default async function MakeOfferPage({ params }: OfferPageProps) {
   });
   if (!hasNda) redirect(`/listings/${id}`);
 
+  const activeOffer = await prisma.offer.findFirst({
+    where: { listingId: id, buyerId: session.user.id, status: { in: ["PENDING", "COUNTERED"] } },
+  });
+  if (activeOffer) redirect(`/offers/${activeOffer.id}`);
+
   const boundAction = createOfferAction.bind(null, listing.id);
 
   return (

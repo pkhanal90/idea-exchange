@@ -22,12 +22,16 @@ function greet(person: PersonRef) {
   return person.name ? `Hi ${person.name.split(" ")[0]},` : "Hi there,";
 }
 
-// Plain-text equivalent of <OfferTermsSummary />, for email bodies.
+// Plain-text equivalent of <OfferTermsSummary />, for email bodies. Same
+// Decimal-is-an-object caveat applies here — see the comment in
+// offer-terms-summary.tsx.
 function formatOfferTerms(offer: OfferTermsRef): string {
   const parts: string[] = [];
-  if (offer.amount) parts.push(formatCurrency(offer.amount as never));
-  if (offer.equityPercent) parts.push(`${Number(offer.equityPercent)}% equity`);
-  if (offer.royaltyPercent) {
+  if (offer.amount && Number(offer.amount) > 0) parts.push(formatCurrency(offer.amount as never));
+  if (offer.equityPercent && Number(offer.equityPercent) > 0) {
+    parts.push(`${Number(offer.equityPercent)}% equity`);
+  }
+  if (offer.royaltyPercent && Number(offer.royaltyPercent) > 0) {
     parts.push(
       `${Number(offer.royaltyPercent)}% royalty${offer.royaltyTermMonths ? ` for ${offer.royaltyTermMonths}mo` : ""}`,
     );

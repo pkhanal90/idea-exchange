@@ -52,6 +52,9 @@ export async function createOfferAction(
   if (listing.status !== "PUBLISHED") {
     return { message: "This listing isn't accepting new offers right now." };
   }
+  if (listing.listingType === "AUCTION") {
+    return { message: "This is an auction — place a bid instead of a fixed offer." };
+  }
 
   // Applies to every role that can make an offer (Buyer, Investor) — seeing
   // full diligence materials before proposing terms isn't optional.
@@ -61,6 +64,14 @@ export async function createOfferAction(
   if (!hasNda) {
     return { message: "Accept this listing's NDA before making an offer." };
   }
+
+  // A fresh (non-counter) offer from this buyer while one is already active
+  // would silently fork the "chain" the rest of the app assumes is unique
+  // per (listing, buyer) — send them to the existing one instead.
+  const activeOffer = await prisma.offer.findFirst({
+    where: { listingId, buyerId: session.user.id, status: { in: ["PENDING", "COUNTERED"] } },
+  });
+  if (activeOffer) redirect(`/offers/${activeOffer.id}`);
 
   const { errors, data } = parseTerms(formData);
   if (!data) return { errors, message: "Please fix the highlighted fields." };
