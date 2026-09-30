@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { stripe, stripeEnabled } from "@/lib/stripe";
+import { sendEscrowHeldEmail } from "@/lib/notifications/deal-emails";
 import type Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const dealId = session.metadata?.dealId;
       if (dealId && session.payment_intent) {
-        await prisma.deal.updateMany({
+        const result = await prisma.deal.updateMany({
           where: { id: dealId, stage: "ESCROW_PENDING" },
           data: {
             stripePaymentIntentId: String(session.payment_intent),
@@ -34,6 +35,20 @@ export async function POST(request: Request) {
             stage: "ESCROW_HELD",
           },
         });
+        // Only notify on the update that actually applied — a retried or
+        // duplicate webhook delivery for the same event shouldn't re-send.
+        if (result.count > 0) {
+          const deal = await prisma.deal.findUnique({
+            where: { id: dealId },
+            include: { listing: true, seller: true, buyer: true },
+          });
+          if (deal) {
+            await Promise.all([
+              sendEscrowHeldEmail(deal.seller, deal.listing, dealId, true),
+              sendEscrowHeldEmail(deal.buyer, deal.listing, dealId, true),
+            ]);
+          }
+        }
       }
       break;
     }

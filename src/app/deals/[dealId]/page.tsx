@@ -19,6 +19,7 @@ import {
   submitRatingAction,
 } from "@/app/deals/[dealId]/actions";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { sendEscrowHeldEmail } from "@/lib/notifications/deal-emails";
 import { ArrowLeft, CheckCircle2, FileText, Lock, XCircle } from "lucide-react";
 import type { DealStage } from "@prisma/client";
 
@@ -60,15 +61,26 @@ export default async function DealRoomPage({ params, searchParams }: DealPagePro
     const paymentIntent =
       typeof checkoutSession.payment_intent === "object" ? checkoutSession.payment_intent : null;
     if (paymentIntent && ["requires_capture", "succeeded"].includes(paymentIntent.status)) {
-      deal = await prisma.deal.update({
-        where: { id: dealId, stage: "ESCROW_PENDING" },
-        data: {
-          stripePaymentIntentId: paymentIntent.id,
-          escrowFundedAt: new Date(),
-          stage: "ESCROW_HELD",
-        },
-        include: { listing: true, seller: true, buyer: true },
-      }).catch(() => deal!);
+      const updated = await prisma.deal
+        .update({
+          where: { id: dealId, stage: "ESCROW_PENDING" },
+          data: {
+            stripePaymentIntentId: paymentIntent.id,
+            escrowFundedAt: new Date(),
+            stage: "ESCROW_HELD",
+          },
+          include: { listing: true, seller: true, buyer: true },
+        })
+        .catch(() => null);
+      if (updated) {
+        deal = updated;
+        // The webhook is the primary path for this notification — this only
+        // fires when a visit to the page beat the webhook to reconciling it.
+        await Promise.all([
+          sendEscrowHeldEmail(deal.seller, deal.listing, dealId, true),
+          sendEscrowHeldEmail(deal.buyer, deal.listing, dealId, true),
+        ]);
+      }
     }
   }
 

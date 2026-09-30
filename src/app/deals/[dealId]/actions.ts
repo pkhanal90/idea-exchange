@@ -5,6 +5,13 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe, stripeEnabled, platformFeeCents } from "@/lib/stripe";
+import {
+  sendEscrowPendingEmail,
+  sendEscrowHeldEmail,
+  sendIpAssignmentReadyEmail,
+  sendDealCompletedEmail,
+  sendDealCancelledEmail,
+} from "@/lib/notifications/deal-emails";
 
 async function loadDealForParty(dealId: string) {
   const session = await auth();
@@ -33,6 +40,18 @@ export async function proceedToEscrowAction(dealId: string) {
       ? { stage: "ESCROW_PENDING" }
       : { stage: "ESCROW_HELD", escrowFundedAt: new Date() }, // nothing to fund on a pure equity/royalty deal
   });
+
+  if (hasCash) {
+    await Promise.all([
+      sendEscrowPendingEmail(deal.seller, deal.listing, dealId, deal.finalAmount),
+      sendEscrowPendingEmail(deal.buyer, deal.listing, dealId, deal.finalAmount),
+    ]);
+  } else {
+    await Promise.all([
+      sendEscrowHeldEmail(deal.seller, deal.listing, dealId, false),
+      sendEscrowHeldEmail(deal.buyer, deal.listing, dealId, false),
+    ]);
+  }
 
   revalidatePath(`/deals/${dealId}`);
 }
@@ -98,6 +117,11 @@ export async function generateIpAssignmentAction(dealId: string) {
     },
   });
 
+  await Promise.all([
+    sendIpAssignmentReadyEmail(deal.seller, deal.listing, dealId),
+    sendIpAssignmentReadyEmail(deal.buyer, deal.listing, dealId),
+  ]);
+
   revalidatePath(`/deals/${dealId}`);
 }
 
@@ -125,6 +149,11 @@ export async function completeDealAction(dealId: string) {
       where: { id: deal.listingId },
       data: { status: "SOLD", soldAt: now },
     }),
+  ]);
+
+  await Promise.all([
+    sendDealCompletedEmail(deal.seller, deal.listing, dealId),
+    sendDealCompletedEmail(deal.buyer, deal.listing, dealId),
   ]);
 
   revalidatePath(`/deals/${dealId}`);
@@ -161,7 +190,7 @@ export async function cancelDealAction(dealId: string, formData: FormData) {
     });
   }
 
-  const reason = String(formData.get("reason") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim() || "Cancelled by a party to the deal.";
 
   await prisma.$transaction([
     prisma.deal.update({
@@ -169,13 +198,18 @@ export async function cancelDealAction(dealId: string, formData: FormData) {
       data: {
         stage: "CANCELLED",
         cancelledAt: new Date(),
-        cancelReason: reason || "Cancelled by a party to the deal.",
+        cancelReason: reason,
       },
     }),
     prisma.listing.updateMany({
       where: { id: deal.listingId, status: "UNDER_OFFER" },
       data: { status: "PUBLISHED" },
     }),
+  ]);
+
+  await Promise.all([
+    sendDealCancelledEmail(deal.seller, deal.listing, dealId, reason),
+    sendDealCancelledEmail(deal.buyer, deal.listing, dealId, reason),
   ]);
 
   revalidatePath(`/deals/${dealId}`);
