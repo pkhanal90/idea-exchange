@@ -1,48 +1,80 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { StatCard } from "@/components/dashboard/stat-card";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { VolumeTrendCard } from "@/components/admin/volume-trend-card";
+import { Sparkline } from "@/components/admin/sparkline";
 import { getAdminNavItems } from "@/lib/admin-nav";
 import { getUnreadMessageCount } from "@/lib/messages";
-import { getAdminOverviewMetrics } from "@/lib/admin-metrics";
-import { formatCurrency, timeAgo } from "@/lib/utils";
-import {
-  AlertTriangle,
-  BadgeCheck,
-  Clock,
-  DollarSign,
-  Handshake,
-  LayoutGrid,
-  ScrollText,
-  ShieldAlert,
-  ShieldCheck,
-  UserPlus,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { getAdminOverviewMetrics, getOverviewChartData } from "@/lib/admin-metrics";
+import { formatCurrency, cn } from "@/lib/utils";
+import { LISTING_STATUS_LABELS } from "@/lib/constants";
+import type { UserRole, ListingStatus } from "@prisma/client";
 
-const ROLE_LABELS: Record<string, string> = {
-  SELLER: "Sellers",
-  BUYER: "Buyers",
-  INVESTOR: "Investors",
-  ADMIN: "Admins",
+const ROLE_TONE: Record<UserRole, "ink" | "accent" | "warning" | "success"> = {
+  SELLER: "ink",
+  BUYER: "accent",
+  INVESTOR: "warning",
+  ADMIN: "success",
 };
 
 export default async function AdminOverviewPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/admin");
 
-  const [metrics, unreadMessages] = await Promise.all([
+  const [metrics, chart, unreadMessages, recentSignups, recentListings] = await Promise.all([
     getAdminOverviewMetrics(),
+    getOverviewChartData(),
     getUnreadMessageCount(session.user.id),
+    prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: { id: true, name: true, email: true, role: true },
+    }),
+    prisma.listing.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: { id: true, title: true, status: true, seller: { select: { name: true, email: true } } },
+    }),
   ]);
 
   const oldestPendingAge = metrics.oldestPendingAt
     ? Math.floor((Date.now() - metrics.oldestPendingAt.getTime()) / (24 * 60 * 60 * 1000))
     : null;
+
+  const actionItems: { text: string; href: string; cta: string }[] = [];
+  if (metrics.pendingModeration > 0) {
+    actionItems.push({
+      text: `${metrics.pendingModeration} listing${metrics.pendingModeration === 1 ? "" : "s"} pending moderation${
+        oldestPendingAge !== null ? ` · oldest ${oldestPendingAge}d` : ""
+      }`,
+      href: "/admin/moderation",
+      cta: "Review",
+    });
+  }
+  if (metrics.pendingPayoutCount > 0) {
+    actionItems.push({
+      text: `${formatCurrency(metrics.pendingPayoutAmount)} held in escrow, not yet released`,
+      href: "/admin/financials",
+      cta: "View",
+    });
+  }
+  if (metrics.suspendedOrBanned > 0) {
+    actionItems.push({
+      text: `${metrics.suspendedOrBanned} suspended or banned account${metrics.suspendedOrBanned === 1 ? "" : "s"}`,
+      href: "/admin/users?status=SUSPENDED",
+      cta: "View",
+    });
+  }
+  if (metrics.disputedDeals > 0) {
+    actionItems.push({
+      text: `${metrics.disputedDeals} disputed deal${metrics.disputedDeals === 1 ? "" : "s"}`,
+      href: "/admin/deals?stage=DISPUTED",
+      cta: "Review",
+    });
+  }
 
   return (
     <DashboardShell
@@ -51,176 +83,115 @@ export default async function AdminOverviewPage() {
       eyebrow="Admin"
       tone="ADMIN"
     >
-      <h1 className="text-xl font-semibold text-ink-900">Overview</h1>
-      <p className="mt-1 text-sm text-ink-500">
-        Everything that needs your attention, at a glance.
-      </p>
+      <VolumeTrendCard
+        volume={chart.volume}
+        volumeTotals={chart.volumeTotals}
+        volumeDeltaPct={chart.volumeDeltaPct}
+      />
 
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-ink-900">Needing action</h2>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Link href="/admin/moderation">
-            <StatCard
-              label="Pending moderation"
-              value={metrics.pendingModeration}
-              icon={ShieldCheck}
-              tone={metrics.pendingModeration > 0 ? "warning" : "success"}
-            />
-          </Link>
-          <Link href="/messages">
-            <StatCard
-              label="Unread messages"
-              value={unreadMessages}
-              icon={ScrollText}
-              tone={unreadMessages > 0 ? "warning" : "success"}
-            />
-          </Link>
-          <Link href="/admin/users?status=SUSPENDED">
-            <StatCard
-              label="Suspended / banned"
-              value={metrics.suspendedOrBanned}
-              icon={ShieldAlert}
-              tone={metrics.suspendedOrBanned > 0 ? "warning" : "success"}
-            />
-          </Link>
-          <Link href="/admin/deals">
-            <StatCard
-              label="Disputed deals"
-              value={metrics.disputedDeals}
-              icon={AlertTriangle}
-              tone={metrics.disputedDeals > 0 ? "warning" : "success"}
-            />
-          </Link>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border border-border bg-white p-3.5">
+          <p className="text-xs text-ink-500">New signups (7d)</p>
+          <p className="mt-1 text-lg font-semibold text-ink-900">{metrics.newSignups}</p>
+          <Sparkline points={chart.signupsDaily7d} color="#10b981" />
         </div>
-        {oldestPendingAge !== null && oldestPendingAge >= 2 && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-warning-700">
-            <Clock className="h-3.5 w-3.5" />
-            Oldest pending submission is {oldestPendingAge} day{oldestPendingAge === 1 ? "" : "s"}{" "}
-            old.
-          </p>
-        )}
-      </section>
+        <div className="rounded-lg border border-border bg-white p-3.5">
+          <p className="text-xs text-ink-500">Listings</p>
+          <p className="mt-1 text-lg font-semibold text-ink-900">{metrics.totalListings}</p>
+          <Sparkline points={chart.listingsDaily7d} color="#525aec" />
+        </div>
+        <div className="rounded-lg border border-border bg-white p-3.5">
+          <p className="text-xs text-ink-500">Active deals</p>
+          <p className="mt-1 text-lg font-semibold text-ink-900">{metrics.activeDeals}</p>
+          <Sparkline points={chart.dealsOpenedDaily7d} color="#525aec" />
+        </div>
+        <div className="rounded-lg border border-border bg-white p-3.5">
+          <p className="text-xs text-ink-500">Commission earned</p>
+          <p className="mt-1 text-lg font-semibold text-ink-900">{formatCurrency(metrics.commissionEarned)}</p>
+          <Sparkline points={chart.commissionDaily7d} color="#10b981" />
+        </div>
+      </div>
 
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-ink-900">Growth &amp; activity</h2>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard label="Total users" value={metrics.totalUsers} icon={Users} tone="ink" />
-          <StatCard
-            label="New signups (7d)"
-            value={metrics.newSignups}
-            icon={UserPlus}
-            tone="accent"
-          />
-          <StatCard
-            label="Total listings"
-            value={metrics.totalListings}
-            icon={LayoutGrid}
-            tone="ink"
-          />
-          <StatCard
-            label="Published"
-            value={metrics.listingsByStatus.PUBLISHED ?? 0}
-            icon={LayoutGrid}
-            tone="success"
-          />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {Object.entries(metrics.usersByRole).map(([role, count]) => (
-            <Badge key={role} tone="neutral">
-              {ROLE_LABELS[role] ?? role}: {count}
-            </Badge>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-ink-900">Deal &amp; revenue health</h2>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard
-            label="Active deals"
-            value={metrics.activeDeals}
-            icon={Handshake}
-            tone="warning"
-          />
-          <StatCard
-            label="Completed deals"
-            value={metrics.completedDealsCount}
-            icon={Handshake}
-            tone="success"
-          />
-          <StatCard
-            label="Total volume"
-            value={formatCurrency(metrics.totalVolume)}
-            icon={DollarSign}
-            tone="accent"
-          />
-          <StatCard
-            label="Commission earned"
-            value={formatCurrency(metrics.commissionEarned)}
-            icon={Wallet}
-            tone="ink"
-          />
-        </div>
-        {metrics.pendingPayoutCount > 0 && (
-          <p className="mt-2 text-xs text-ink-500">
-            {metrics.pendingPayoutCount} deal{metrics.pendingPayoutCount === 1 ? "" : "s"} holding{" "}
-            {formatCurrency(metrics.pendingPayoutAmount)} in escrow, not yet released.
-          </p>
-        )}
-      </section>
-
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-ink-900">Trust &amp; safety</h2>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-2">
-          <StatCard
-            label="New accreditations (7d)"
-            value={metrics.recentAccreditations}
-            icon={BadgeCheck}
-            tone="success"
-          />
-          <StatCard
-            label="Suspended / banned accounts"
-            value={metrics.suspendedOrBanned}
-            icon={ShieldAlert}
-            tone={metrics.suspendedOrBanned > 0 ? "warning" : "success"}
-          />
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-ink-900">Recent admin activity</h2>
-        {metrics.recentAuditEntries.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-ink-400">
-              No admin actions recorded yet.
-            </CardContent>
-          </Card>
+      <div className="mt-6 rounded-lg border border-border bg-white p-4">
+        <p className="text-sm font-semibold text-ink-900">Needs attention</p>
+        {actionItems.length === 0 ? (
+          <p className="mt-2 text-sm text-success-700">Nothing needs your attention right now.</p>
         ) : (
-          <div className="space-y-2">
-            {metrics.recentAuditEntries.map((entry) => (
-              <Card key={entry.id}>
-                <CardContent className="flex items-center justify-between gap-2 py-3">
-                  <p className="text-sm text-ink-700">
-                    <span className="font-medium text-ink-900">
-                      {entry.actor.name ?? entry.actor.email}
-                    </span>{" "}
-                    <Badge tone="accent">{entry.action.replaceAll("_", " ")}</Badge>
-                  </p>
-                  <span className="shrink-0 text-xs text-ink-400">
-                    {timeAgo(entry.createdAt)}
-                  </span>
-                </CardContent>
-              </Card>
+          <div className="mt-2">
+            {actionItems.map((item, i) => (
+              <div
+                key={item.href + i}
+                className={cn(
+                  "flex items-center justify-between gap-3 py-2 first:pt-1 last:pb-0",
+                  i > 0 && "border-t border-ink-50",
+                )}
+              >
+                <span className="flex items-center gap-2 text-sm text-ink-900">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning-500" />
+                  {item.text}
+                </span>
+                <Link href={item.href} className="shrink-0 text-xs font-medium text-accent-700 hover:text-accent-800">
+                  {item.cta}
+                </Link>
+              </div>
             ))}
           </div>
         )}
-        <Link
-          href="/admin/audit-log"
-          className="mt-2 inline-block text-xs font-medium text-accent-700 hover:text-accent-800"
-        >
-          View full audit log →
-        </Link>
-      </section>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-border bg-white p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink-900">New signups</p>
+            <Link href="/admin/users" className="text-xs font-medium text-accent-700 hover:text-accent-800">
+              View all
+            </Link>
+          </div>
+          {recentSignups.map((u, i) => (
+            <div
+              key={u.id}
+              className={cn(
+                "flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0",
+                i > 0 && "border-t border-ink-50",
+              )}
+            >
+              <Link
+                href={`/admin/users/${u.id}`}
+                className="truncate text-sm text-ink-900 hover:text-accent-700"
+              >
+                {u.name ?? u.email}
+              </Link>
+              <Badge tone={ROLE_TONE[u.role]}>{u.role}</Badge>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-lg border border-border bg-white p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink-900">New listings</p>
+            <Link href="/admin/listings" className="text-xs font-medium text-accent-700 hover:text-accent-800">
+              View all
+            </Link>
+          </div>
+          {recentListings.map((l, i) => (
+            <div
+              key={l.id}
+              className={cn("py-2 first:pt-0 last:pb-0", i > 0 && "border-t border-ink-50")}
+            >
+              <Link
+                href={`/listings/${l.id}`}
+                target="_blank"
+                className="block truncate text-sm text-ink-900 hover:text-accent-700"
+              >
+                {l.title}
+              </Link>
+              <p className="truncate text-xs text-ink-400">
+                {l.seller.name ?? l.seller.email} · {LISTING_STATUS_LABELS[l.status as ListingStatus]}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </DashboardShell>
   );
 }

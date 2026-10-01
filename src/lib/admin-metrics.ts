@@ -22,8 +22,6 @@ export async function getAdminOverviewMetrics() {
     dealsByStage,
     completedDeals,
     pendingPayoutDeals,
-    recentAccreditations,
-    recentAuditEntries,
     platformSettings,
   ] = await Promise.all([
     prisma.user.count(),
@@ -48,18 +46,6 @@ export async function getAdminOverviewMetrics() {
       where: { stage: { in: ["ESCROW_HELD", "IP_ASSIGNMENT_PENDING"] } },
       _sum: { finalAmount: true },
       _count: { _all: true },
-    }),
-    prisma.user.count({
-      where: {
-        role: "INVESTOR",
-        accreditationStatus: "SELF_ATTESTED",
-        accreditationAttestedAt: { gte: weekAgo },
-      },
-    }),
-    prisma.auditLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: { actor: { select: { name: true, email: true } } },
     }),
     prisma.platformSettings.findUnique({ where: { id: "default" } }),
   ]);
@@ -98,8 +84,6 @@ export async function getAdminOverviewMetrics() {
     completedDealsCount: completedDeals._count._all,
     pendingPayoutAmount,
     pendingPayoutCount: pendingPayoutDeals._count._all,
-    recentAccreditations,
-    recentAuditEntries,
   };
 }
 
@@ -181,3 +165,108 @@ export async function getFinancialsBreakdown() {
 }
 
 export type FinancialsBreakdown = Awaited<ReturnType<typeof getFinancialsBreakdown>>;
+
+function daysAgo(n: number): Date {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
+
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// Buckets each item into the day it falls on, counting back from today —
+// index 0 is the oldest day, the last index is today. Items outside the
+// window are dropped.
+function bucketByDay(items: { date: Date; value: number }[], days: number): number[] {
+  const buckets = new Array(days).fill(0);
+  const today = startOfDay(new Date()).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+  for (const item of items) {
+    const dayIndexFromToday = Math.floor((today - startOfDay(item.date).getTime()) / dayMs);
+    const idx = days - 1 - dayIndexFromToday;
+    if (idx >= 0 && idx < days) buckets[idx] += item.value;
+  }
+  return buckets;
+}
+
+function bucketByMonth(items: { date: Date; value: number }[]): number[] {
+  const map = new Map<string, number>();
+  for (const item of items) {
+    const key = `${item.date.getFullYear()}-${String(item.date.getMonth() + 1).padStart(2, "0")}`;
+    map.set(key, (map.get(key) ?? 0) + item.value);
+  }
+  return [...map.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([, value]) => value);
+}
+
+const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+
+// Powers the Overview page's volume chart (7d/30d/all-time toggle) and the
+// small per-metric sparklines. Completed deals are fetched in full and
+// bucketed in JS (same convention as getFinancialsBreakdown) rather than via
+// a DB-side time-bucket aggregate, since Prisma has no portable equivalent
+// and the completed-deal count here is small enough that this is cheap at
+// this business's current scale.
+export async function getOverviewChartData() {
+  const [completedAll, signupRows, listingRows, dealRows, settings] = await Promise.all([
+    prisma.deal.findMany({
+      where: { stage: "COMPLETE", completedAt: { not: null } },
+      select: { completedAt: true, finalAmount: true },
+    }),
+    prisma.user.findMany({ where: { createdAt: { gte: daysAgo(7) } }, select: { createdAt: true } }),
+    prisma.listing.findMany({ where: { createdAt: { gte: daysAgo(7) } }, select: { createdAt: true } }),
+    prisma.deal.findMany({ where: { createdAt: { gte: daysAgo(7) } }, select: { createdAt: true } }),
+    prisma.platformSettings.findUnique({ where: { id: "default" } }),
+  ]);
+
+  const commissionPercent = Number(settings?.commissionPercent ?? 10);
+  const dealPoints = completedAll.map((d) => ({
+    date: d.completedAt as Date,
+    value: Number(d.finalAmount ?? 0),
+  }));
+
+  const volume60dDaily = bucketByDay(dealPoints, 60);
+  const volume30dDaily = volume60dDaily.slice(-30);
+  const volume7dDaily = volume60dDaily.slice(-7);
+  const prior7dDaily = volume60dDaily.slice(-14, -7);
+  const prior30dDaily = volume60dDaily.slice(-60, -30);
+  const volumeAllMonthly = bucketByMonth(dealPoints);
+  const totalVolumeAllTime = sum(dealPoints.map((p) => p.value));
+
+  const pctChange = (current: number, prior: number) =>
+    prior > 0 ? Math.round(((current - prior) / prior) * 100) : null;
+
+  const commissionDaily7d = volume7dDaily.map((v) => v * (commissionPercent / 100));
+
+  return {
+    volume: {
+      "7d": volume7dDaily,
+      "30d": volume30dDaily,
+      all: volumeAllMonthly,
+    },
+    volumeTotals: {
+      "7d": sum(volume7dDaily),
+      "30d": sum(volume30dDaily),
+      all: totalVolumeAllTime,
+    },
+    volumeDeltaPct: {
+      "7d": pctChange(sum(volume7dDaily), sum(prior7dDaily)),
+      "30d": pctChange(sum(volume30dDaily), sum(prior30dDaily)),
+      all: null,
+    },
+    signupsDaily7d: bucketByDay(
+      signupRows.map((u) => ({ date: u.createdAt, value: 1 })),
+      7,
+    ),
+    listingsDaily7d: bucketByDay(
+      listingRows.map((l) => ({ date: l.createdAt, value: 1 })),
+      7,
+    ),
+    dealsOpenedDaily7d: bucketByDay(
+      dealRows.map((d) => ({ date: d.createdAt, value: 1 })),
+      7,
+    ),
+    commissionDaily7d,
+  };
+}
+
+export type OverviewChartData = Awaited<ReturnType<typeof getOverviewChartData>>;
