@@ -104,3 +104,80 @@ export async function getAdminOverviewMetrics() {
 }
 
 export type AdminOverviewMetrics = Awaited<ReturnType<typeof getAdminOverviewMetrics>>;
+
+// Per-category commission needs each deal's listing category, so unlike the
+// Overview's single aggregate this reads full rows for completed deals
+// rather than an aggregate sum — the table below needs the breakdown, not
+// just the total.
+export async function getFinancialsBreakdown() {
+  const [settings, overrides, completedDeals, pendingPayoutDeals] = await Promise.all([
+    prisma.platformSettings.findUnique({ where: { id: "default" } }),
+    prisma.categoryCommissionOverride.findMany(),
+    prisma.deal.findMany({
+      where: { stage: "COMPLETE" },
+      select: { finalAmount: true, listing: { select: { category: true } } },
+    }),
+    prisma.deal.findMany({
+      where: { stage: { in: ["ESCROW_HELD", "IP_ASSIGNMENT_PENDING"] } },
+      select: {
+        id: true,
+        finalAmount: true,
+        escrowFundedAt: true,
+        listing: { select: { title: true } },
+        seller: { select: { name: true, email: true } },
+      },
+      orderBy: { escrowFundedAt: "asc" },
+    }),
+  ]);
+
+  const defaultRate = Number(settings?.commissionPercent ?? 10);
+  const overrideMap = new Map(overrides.map((o) => [o.category, Number(o.commissionPercent)]));
+
+  const byCategory = new Map<
+    string,
+    { count: number; volume: number; rate: number; commission: number }
+  >();
+  let totalVolume = 0;
+  let totalCommission = 0;
+
+  for (const deal of completedDeals) {
+    const amount = Number(deal.finalAmount ?? 0);
+    if (amount <= 0) continue;
+    const category = deal.listing.category;
+    const rate = overrideMap.get(category) ?? defaultRate;
+    const commission = amount * (rate / 100);
+    totalVolume += amount;
+    totalCommission += commission;
+    const entry = byCategory.get(category) ?? { count: 0, volume: 0, rate, commission: 0 };
+    entry.count += 1;
+    entry.volume += amount;
+    entry.commission += commission;
+    byCategory.set(category, entry);
+  }
+
+  const pendingPayoutAmount = pendingPayoutDeals.reduce(
+    (sum, d) => sum + Number(d.finalAmount ?? 0),
+    0,
+  );
+
+  return {
+    defaultRate,
+    totalVolume,
+    totalCommission,
+    completedCount: completedDeals.length,
+    byCategory: [...byCategory.entries()]
+      .map(([category, v]) => ({ category, ...v }))
+      .sort((a, b) => b.volume - a.volume),
+    pendingPayouts: pendingPayoutDeals.map((d) => ({
+      id: d.id,
+      title: d.listing.title,
+      amount: Number(d.finalAmount ?? 0),
+      seller: d.seller.name ?? d.seller.email ?? "Unknown",
+      fundedAt: d.escrowFundedAt,
+    })),
+    pendingPayoutAmount,
+    pendingPayoutCount: pendingPayoutDeals.length,
+  };
+}
+
+export type FinancialsBreakdown = Awaited<ReturnType<typeof getFinancialsBreakdown>>;
