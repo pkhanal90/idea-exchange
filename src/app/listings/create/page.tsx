@@ -1,7 +1,16 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { Container } from "@/components/ui/container";
 import { CreateListingForm } from "@/components/listings/create-listing-form";
 
-export default function CreateListingPage() {
+export default async function CreateListingPage() {
+  const session = await auth();
+  // Investors are buy-side only — Seller and Buyer accounts can both list
+  // and buy, so this is the one role this page turns away.
+  if (session?.user?.role === "INVESTOR") {
+    redirect("/dashboard/investor");
+  }
+
   return (
     <Container className="max-w-3xl py-10">
       <div className="mb-8">

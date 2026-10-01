@@ -4,16 +4,7 @@ import { getLatestOfferPerChain } from "@/lib/offers";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { OfferChainRow } from "@/components/offers/offer-chain-row";
-import { Bookmark, CreditCard, Handshake, LayoutGrid, MessageSquare, Star } from "lucide-react";
-
-const navItems = [
-  { href: "/dashboard/seller", label: "My Listings", icon: LayoutGrid },
-  { href: "/dashboard/seller/offers", label: "Offers", icon: Handshake },
-  { href: "/dashboard/seller/payouts", label: "Payouts", icon: CreditCard },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/seller/ratings", label: "Ratings", icon: Star },
-];
+import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
 
 export default async function SellerOffersPage() {
   const session = await auth();
@@ -22,7 +13,7 @@ export default async function SellerOffersPage() {
   const offerChains = await getLatestOfferPerChain({ listing: { sellerId: session.user.id } });
 
   return (
-    <DashboardShell navItems={navItems} activeHref="/dashboard/seller/offers" eyebrow="Seller">
+    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/seller/offers" eyebrow="Seller" tone="SELLER">
       <h1 className="text-xl font-semibold text-ink-900">Offers</h1>
       <p className="mt-1 text-sm text-ink-500">
         Every negotiation across your listings — accept, counter, or decline from each thread.

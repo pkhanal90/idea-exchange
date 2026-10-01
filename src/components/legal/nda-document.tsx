@@ -1,9 +1,7 @@
-// The single source of truth for NDA wording — rendered identically for a
-// seller previewing the agreement before submitting their listing, and for
-// a buyer accepting it before viewing full details. Only the header fields
-// (listing title/reference, party labels, date) vary per listing; the body
-// text never changes. Keeping one component means there's no way for the
-// seller-facing and buyer-facing copies to drift apart.
+// NDA wording for buyers/investors accepting confidentiality before viewing
+// a listing's full details. Sellers sign a separate document — see
+// consent-document.tsx — since publicly disclosing your own idea isn't the
+// same thing as receiving someone else's in confidence.
 export function NdaDocument({
   listingTitle,
   listingId,
@@ -53,9 +51,9 @@ export function NdaDocument({
           investment in the listed idea, will not be disclosed to any third party, and will not
           be used to develop a competing product or service.
         </p>
-        <p className="text-ink-500">
-          This is a simulated agreement generated for prototype purposes on Idea Exchange and
-          does not constitute a binding legal contract.
+        <p>
+          By checking the box and typing their full legal name, the Receiving Party agrees this
+          constitutes a legally binding electronic signature of this Agreement.
         </p>
       </div>
     </article>

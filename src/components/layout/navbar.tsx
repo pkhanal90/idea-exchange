@@ -22,9 +22,11 @@ export async function Navbar() {
             <Link href="/listings" className="hover:text-ink-900">
               Browse Ideas
             </Link>
-            <Link href="/listings/create" className="hover:text-ink-900">
-              Sell an Idea
-            </Link>
+            {session?.user?.role !== "INVESTOR" && (
+              <Link href="/listings/create" className="hover:text-ink-900">
+                Sell an Idea
+              </Link>
+            )}
             <Link href="/#how-it-works" className="hover:text-ink-900">
               How It Works
             </Link>

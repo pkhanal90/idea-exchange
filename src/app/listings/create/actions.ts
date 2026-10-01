@@ -29,6 +29,12 @@ export async function createListingAction(
     redirect("/auth/signin?callbackUrl=/listings/create");
   }
 
+  // Investors are buy-side only on this platform — Seller and Buyer accounts
+  // can both list and buy, so this is the one role-based wall left.
+  if (session.user.role === "INVESTOR") {
+    return { message: "Investor accounts can't list ideas for sale." };
+  }
+
   const raw = Object.fromEntries(formData.entries());
   const parsed = listingSchema.safeParse(raw);
 
@@ -45,10 +51,11 @@ export async function createListingAction(
 
   const data = parsed.data;
   const intent = formData.get("intent") === "submit" ? "submit" : "draft";
-  const ndaAcknowledged = formData.get("ndaAcknowledged") === "true";
+  const consentAccepted = formData.get("consentAccepted") === "true";
+  const signedName = String(formData.get("signedName") ?? "").trim();
 
-  if (intent === "submit" && !ndaAcknowledged) {
-    return { message: "Review and accept the NDA that will protect your listing before submitting." };
+  if (intent === "submit" && (!consentAccepted || !signedName)) {
+    return { message: "Confirm ownership and sign the consent before submitting." };
   }
 
   let pitchDeckKey: string | undefined;
@@ -103,7 +110,8 @@ export async function createListingAction(
       openToEquity: data.listingType === "EQUITY_ROYALTY" ? true : Boolean(data.openToEquity),
       pitchDeckKey,
       status: intent === "submit" ? "PENDING_REVIEW" : "DRAFT",
-      sellerNdaAcknowledgedAt: intent === "submit" ? new Date() : undefined,
+      sellerConsentAcceptedAt: intent === "submit" ? new Date() : undefined,
+      sellerConsentSignedName: intent === "submit" ? signedName : undefined,
     },
   });
 

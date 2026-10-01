@@ -6,13 +6,9 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { ListingCard } from "@/components/listings/listing-card";
 import { OfferChainRow } from "@/components/offers/offer-chain-row";
-import { Bookmark, Handshake, LayoutGrid, MessageSquare, Unlock } from "lucide-react";
-
-const navItems = [
-  { href: "/dashboard/buyer", label: "My Offers", icon: LayoutGrid },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-];
+import { ButtonLink } from "@/components/ui/button";
+import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
+import { Bookmark, Handshake, Plus, Unlock } from "lucide-react";
 
 export default async function BuyerDashboardPage() {
   const session = await auth();
@@ -24,12 +20,18 @@ export default async function BuyerDashboardPage() {
   const savedIds = new Set(savedListings.map((s) => s.listingId));
 
   return (
-    <DashboardShell navItems={navItems} activeHref="/dashboard/buyer" eyebrow="Buyer" tone="BUYER">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">My Offers</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          Listings you&apos;ve unlocked or saved, and every offer you&apos;ve made.
-        </p>
+    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/buyer" eyebrow="Buyer" tone="BUYER">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">My Purchases</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Listings you&apos;ve unlocked or saved, and every offer you&apos;ve made.
+          </p>
+        </div>
+        <ButtonLink href="/listings/create" size="sm">
+          <Plus className="h-4 w-4" />
+          New listing
+        </ButtonLink>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-4">

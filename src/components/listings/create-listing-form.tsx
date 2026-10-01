@@ -7,7 +7,7 @@ import { Label, Input, Textarea, Select, FieldError, FieldHint } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CategoryIcon } from "@/components/listings/category-icon";
-import { NdaDocument } from "@/components/legal/nda-document";
+import { ConsentDocument } from "@/components/legal/consent-document";
 import { CATEGORY_LABELS, STAGE_DESCRIPTIONS, STAGE_LABELS } from "@/lib/constants";
 import { DollarSign, Lightbulb, ShieldCheck, UploadCloud, X, type LucideIcon } from "lucide-react";
 import type { IndustryCategory } from "@prisma/client";
@@ -22,8 +22,9 @@ export function CreateListingForm() {
   const [openToEquity, setOpenToEquity] = useState(false);
   const [category, setCategory] = useState<IndustryCategory | "">("");
   const [title, setTitle] = useState("");
-  const [ndaModalOpen, setNdaModalOpen] = useState(false);
-  const [ndaAgreed, setNdaAgreed] = useState(false);
+  const [consentModalOpen, setConsentModalOpen] = useState(false);
+  const [consentAgreed, setConsentAgreed] = useState(false);
+  const [signedName, setSignedName] = useState("");
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -237,26 +238,26 @@ export function CreateListingForm() {
           type="button"
           variant="primary"
           className="w-full sm:w-auto"
-          onClick={() => setNdaModalOpen(true)}
+          onClick={() => setConsentModalOpen(true)}
         >
           Submit for review
         </Button>
       </div>
 
-      {ndaModalOpen && (
+      {consentModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/50 p-4"
-          onClick={() => setNdaModalOpen(false)}
+          onClick={() => setConsentModalOpen(false)}
         >
           <div
             className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h4 className="text-sm font-semibold text-ink-900">Review your listing&apos;s NDA</h4>
+              <h4 className="text-sm font-semibold text-ink-900">Review your submission consent</h4>
               <button
                 type="button"
-                onClick={() => setNdaModalOpen(false)}
+                onClick={() => setConsentModalOpen(false)}
                 className="text-ink-400 hover:text-ink-700"
                 aria-label="Close"
               >
@@ -265,33 +266,41 @@ export function CreateListingForm() {
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
               <p className="mb-4 rounded-lg bg-ink-50 px-3.5 py-2.5 text-xs text-ink-500">
-                This is the confidentiality agreement every buyer will be asked to accept before
-                seeing your full listing details — it&apos;s generated automatically from your
-                listing title.
+                This confirms you own this idea and consent to listing it publicly — it&apos;s
+                separate from the NDA buyers will sign before seeing your full details.
               </p>
-              <NdaDocument
-                listingTitle={title}
-                disclosingParty="You (the seller)"
-                receivingParty="Each buyer who requests full access"
-                date={today}
-              />
+              <ConsentDocument listingTitle={title} submitterName={signedName || "You"} date={today} />
             </div>
-            <div className="border-t border-border px-5 py-4">
+            <div className="space-y-3 border-t border-border px-5 py-4">
               <label className="flex items-start gap-2 text-sm text-ink-700">
                 <input
                   type="checkbox"
-                  checked={ndaAgreed}
-                  onChange={(e) => setNdaAgreed(e.target.checked)}
+                  checked={consentAgreed}
+                  onChange={(e) => setConsentAgreed(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-border text-accent-600 focus:ring-accent-500"
                 />
-                I&apos;ve reviewed this NDA and want it to protect my listing.
+                I confirm I own this idea and consent to it being listed publicly on Idea
+                Exchange.
               </label>
-              <input type="hidden" name="ndaAcknowledged" value={ndaAgreed ? "true" : ""} />
-              <div className="mt-4 flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setNdaModalOpen(false)}>
+              <div>
+                <label htmlFor="consent-signed-name" className="text-xs font-medium text-ink-500">
+                  Type your full legal name to sign
+                </label>
+                <input
+                  id="consent-signed-name"
+                  name="signedName"
+                  value={signedName}
+                  onChange={(e) => setSignedName(e.target.value)}
+                  placeholder="Full legal name"
+                  className="mt-1 w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                />
+              </div>
+              <input type="hidden" name="consentAccepted" value={consentAgreed ? "true" : ""} />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setConsentModalOpen(false)}>
                   Cancel
                 </Button>
-                <ConfirmSubmitButton disabled={!ndaAgreed} />
+                <ConfirmSubmitButton disabled={!consentAgreed || signedName.trim().length === 0} />
               </div>
             </div>
           </div>

@@ -20,6 +20,7 @@ export function NdaGate({
 }) {
   const [open, setOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [signedName, setSignedName] = useState("");
   const boundAction = acceptNdaAction.bind(null, listingId);
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -75,7 +76,7 @@ export function NdaGate({
             </div>
             <form
               action={boundAction}
-              className="border-t border-border px-5 py-4"
+              className="space-y-3 border-t border-border px-5 py-4"
               onSubmit={() => setOpen(false)}
             >
               <label className="flex items-start gap-2 text-sm text-ink-700">
@@ -87,11 +88,24 @@ export function NdaGate({
                 />
                 I have read and agree to the terms of this NDA.
               </label>
-              <div className="mt-4 flex justify-end gap-2">
+              <div>
+                <label htmlFor="nda-signed-name" className="text-xs font-medium text-ink-500">
+                  Type your full legal name to sign
+                </label>
+                <input
+                  id="nda-signed-name"
+                  name="signedName"
+                  value={signedName}
+                  onChange={(e) => setSignedName(e.target.value)}
+                  placeholder="Full legal name"
+                  className="mt-1 w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <AgreeButton disabled={!agreed} />
+                <AgreeButton disabled={!agreed || signedName.trim().length === 0} />
               </div>
             </form>
           </div>

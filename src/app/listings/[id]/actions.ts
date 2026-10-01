@@ -9,19 +9,22 @@ import { acceptOfferAndCreateDeal } from "@/lib/offers";
 import { bidSchema, type BidActionState } from "@/lib/validation/bid";
 import { sendNewBidEmail } from "@/lib/notifications/offer-emails";
 
-export async function acceptNdaAction(listingId: string) {
+export async function acceptNdaAction(listingId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user) {
     redirect(`/auth/signin?callbackUrl=/listings/${listingId}`);
   }
+
+  const signedName = String(formData.get("signedName") ?? "").trim();
+  if (!signedName) return;
 
   const headerList = await headers();
   const ipAddress = headerList.get("x-forwarded-for")?.split(",")[0]?.trim();
 
   await prisma.ndaAcceptance.upsert({
     where: { listingId_userId: { listingId, userId: session.user.id } },
-    create: { listingId, userId: session.user.id, ipAddress },
-    update: {},
+    create: { listingId, userId: session.user.id, ipAddress, signedName },
+    update: { signedName },
   });
 
   revalidatePath(`/listings/${listingId}`);

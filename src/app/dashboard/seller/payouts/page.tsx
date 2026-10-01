@@ -7,16 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createConnectOnboardingLinkAction } from "@/app/dashboard/seller/payouts/actions";
-import { Bookmark, CreditCard, Handshake, LayoutGrid, MessageSquare, Star } from "lucide-react";
-
-const navItems = [
-  { href: "/dashboard/seller", label: "My Listings", icon: LayoutGrid },
-  { href: "/dashboard/seller/offers", label: "Offers", icon: Handshake },
-  { href: "/dashboard/seller/payouts", label: "Payouts", icon: CreditCard },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/seller/ratings", label: "Ratings", icon: Star },
-];
+import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
 
 export default async function PayoutsPage() {
   const session = await auth();
@@ -41,7 +32,7 @@ export default async function PayoutsPage() {
   }
 
   return (
-    <DashboardShell navItems={navItems} activeHref="/dashboard/seller/payouts" eyebrow="Seller">
+    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/seller/payouts" eyebrow="Seller" tone="SELLER">
       <h1 className="text-xl font-semibold text-ink-900">Payouts</h1>
       <p className="mt-1 text-sm text-ink-500">
         Connect a Stripe account to receive escrow releases when a deal completes. Test mode

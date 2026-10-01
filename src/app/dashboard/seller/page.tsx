@@ -9,27 +9,9 @@ import { ButtonLink } from "@/components/ui/button";
 import { ListingStatusBadge, ListingTypeBadge } from "@/components/listings/badges";
 import { CategoryIcon } from "@/components/listings/category-icon";
 import { SubmitForReviewButton } from "@/components/listings/submit-for-review-button";
+import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import {
-  Bookmark,
-  CreditCard,
-  DollarSign,
-  Eye,
-  Handshake,
-  LayoutGrid,
-  MessageSquare,
-  Plus,
-  Star,
-} from "lucide-react";
-
-const navItems = [
-  { href: "/dashboard/seller", label: "My Listings", icon: LayoutGrid },
-  { href: "/dashboard/seller/offers", label: "Offers", icon: Handshake },
-  { href: "/dashboard/seller/payouts", label: "Payouts", icon: CreditCard },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/seller/ratings", label: "Ratings", icon: Star },
-];
+import { DollarSign, Eye, Handshake, LayoutGrid, Plus } from "lucide-react";
 
 export default async function SellerDashboardPage() {
   const session = await auth();
@@ -48,7 +30,7 @@ export default async function SellerDashboardPage() {
   };
 
   return (
-    <DashboardShell navItems={navItems} activeHref="/dashboard/seller" eyebrow="Seller" tone="SELLER">
+    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/seller" eyebrow="Seller" tone="SELLER">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">My Listings</h1>
