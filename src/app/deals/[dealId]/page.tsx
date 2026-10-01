@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { OfferTermsSummary } from "@/components/offers/offer-terms-summary";
 import { CategoryIcon } from "@/components/listings/category-icon";
+import { DealStageBadge } from "@/components/listings/badges";
 import { DealActionForm, CancelDealControl } from "@/components/deals/deal-actions";
 import { RatingForm } from "@/components/deals/rating-form";
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/app/deals/[dealId]/actions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { sendEscrowHeldEmail } from "@/lib/notifications/deal-emails";
-import { ArrowLeft, CheckCircle2, FileText, Lock, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, FileText, Lock, XCircle } from "lucide-react";
 import type { DealStage } from "@prisma/client";
 
 interface DealPageProps {
@@ -112,13 +112,13 @@ export default async function DealRoomPage({ params, searchParams }: DealPagePro
           <CategoryIcon category={deal.listing.category} size="sm" />
           <h1 className="text-xl font-semibold text-ink-900">Deal room</h1>
         </div>
-        {deal.stage !== "CANCELLED" && <StageBadge stage={deal.stage} />}
+        {deal.stage !== "CANCELLED" && <DealStageBadge stage={deal.stage} />}
       </div>
       <p className="mt-1 text-sm text-ink-500">
         With {otherParty.name ?? otherParty.email} · {isSeller ? "you're the seller" : "you're the buyer"}
       </p>
 
-      {deal.stage !== "CANCELLED" && (
+      {deal.stage !== "CANCELLED" && deal.stage !== "DISPUTED" && (
         <div className="mt-6 flex items-center gap-2">
           {STAGE_STEPS.map((step, i) => {
             const currentIndex = STAGE_STEPS.findIndex((s) => s.stage === deal!.stage);
@@ -297,18 +297,30 @@ export default async function DealRoomPage({ params, searchParams }: DealPagePro
             </CardContent>
           </Card>
         )}
+
+        {deal.stage === "DISPUTED" && (
+          <Card className="border-danger-500/30 bg-danger-50">
+            <CardContent className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger-700" />
+              <div>
+                <p className="text-sm font-medium text-danger-700">
+                  This deal has been flagged for manual review
+                </p>
+                <p className="mt-1 text-sm text-danger-700/80">
+                  It&apos;s on hold while our team looks into it — you&apos;ll be notified once
+                  it&apos;s resolved.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {deal.stage !== "COMPLETE" && deal.stage !== "CANCELLED" && (
+      {deal.stage !== "COMPLETE" && deal.stage !== "CANCELLED" && deal.stage !== "DISPUTED" && (
         <div className="mt-4">
           <CancelDealControl action={cancelAction} />
         </div>
       )}
     </Container>
   );
-}
-
-function StageBadge({ stage }: { stage: DealStage }) {
-  const label = STAGE_STEPS.find((s) => s.stage === stage)?.label ?? stage;
-  return <Badge tone={stage === "COMPLETE" ? "success" : "accent"}>{label}</Badge>;
 }
