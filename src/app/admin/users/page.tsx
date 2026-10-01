@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
+import { getAdminNavItems } from "@/lib/admin-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 import { UserRow } from "@/components/admin/user-row";
 import { Input, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -12,6 +15,9 @@ interface AdminUsersPageProps {
 }
 
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
+  const session = await auth();
+  if (!session?.user) redirect("/auth/signin?callbackUrl=/admin/users");
+
   const { q, role, status } = await searchParams;
 
   const where: Prisma.UserWhereInput = {
@@ -25,24 +31,32 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     ...(status && { status: status as UserStatus }),
   };
 
-  const users = await prisma.user.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      statusReason: true,
-      accreditationStatus: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  const [users, unreadMessages] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        statusReason: true,
+        accreditationStatus: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    getUnreadMessageCount(session.user.id),
+  ]);
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/users" eyebrow="Admin" tone="ADMIN">
+    <DashboardShell
+      navItems={getAdminNavItems(unreadMessages)}
+      activeHref="/admin/users"
+      eyebrow="Admin"
+      tone="ADMIN"
+    >
       <h1 className="text-xl font-semibold text-ink-900">Users</h1>
       <p className="mt-1 text-sm text-ink-500">
         Search, filter, suspend or ban accounts, and manage investor accreditation.

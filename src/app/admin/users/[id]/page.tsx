@@ -1,8 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
+import { getAdminNavItems } from "@/lib/admin-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 import { UserRow } from "@/components/admin/user-row";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -14,6 +16,9 @@ interface AdminUserDetailPageProps {
 }
 
 export default async function AdminUserDetailPage({ params }: AdminUserDetailPageProps) {
+  const session = await auth();
+  if (!session?.user) redirect("/auth/signin?callbackUrl=/admin/users");
+
   const { id } = await params;
 
   const user = await prisma.user.findUnique({
@@ -31,21 +36,28 @@ export default async function AdminUserDetailPage({ params }: AdminUserDetailPag
   });
   if (!user) notFound();
 
-  const [listingCount, offerCount, dealCount, messageThreadCount, auditEntries] = await Promise.all([
-    prisma.listing.count({ where: { sellerId: id } }),
-    prisma.offer.count({ where: { buyerId: id } }),
-    prisma.deal.count({ where: { OR: [{ sellerId: id }, { buyerId: id }] } }),
-    prisma.messageThread.count({ where: { OR: [{ sellerId: id }, { buyerId: id }] } }),
-    prisma.auditLog.findMany({
-      where: { targetType: "User", targetId: id },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: { actor: { select: { name: true, email: true } } },
-    }),
-  ]);
+  const [listingCount, offerCount, dealCount, messageThreadCount, auditEntries, unreadMessages] =
+    await Promise.all([
+      prisma.listing.count({ where: { sellerId: id } }),
+      prisma.offer.count({ where: { buyerId: id } }),
+      prisma.deal.count({ where: { OR: [{ sellerId: id }, { buyerId: id }] } }),
+      prisma.messageThread.count({ where: { OR: [{ sellerId: id }, { buyerId: id }] } }),
+      prisma.auditLog.findMany({
+        where: { targetType: "User", targetId: id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: { actor: { select: { name: true, email: true } } },
+      }),
+      getUnreadMessageCount(session.user.id),
+    ]);
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/users" eyebrow="Admin" tone="ADMIN">
+    <DashboardShell
+      navItems={getAdminNavItems(unreadMessages)}
+      activeHref="/admin/users"
+      eyebrow="Admin"
+      tone="ADMIN"
+    >
       <Link
         href="/admin/users"
         className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-900"

@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
+import { getAdminNavItems } from "@/lib/admin-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 import { Input, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,6 +44,9 @@ function targetHref(targetType: string, targetId: string | null) {
 }
 
 export default async function AdminAuditLogPage({ searchParams }: AdminAuditLogPageProps) {
+  const session = await auth();
+  if (!session?.user) redirect("/auth/signin?callbackUrl=/admin/audit-log");
+
   const { actor, action } = await searchParams;
 
   const where: Prisma.AuditLogWhereInput = {
@@ -55,15 +61,23 @@ export default async function AdminAuditLogPage({ searchParams }: AdminAuditLogP
     ...(action && { action: action as AuditAction }),
   };
 
-  const entries = await prisma.auditLog.findMany({
-    where,
-    include: { actor: { select: { name: true, email: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 150,
-  });
+  const [entries, unreadMessages] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      include: { actor: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 150,
+    }),
+    getUnreadMessageCount(session.user.id),
+  ]);
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/audit-log" eyebrow="Admin" tone="ADMIN">
+    <DashboardShell
+      navItems={getAdminNavItems(unreadMessages)}
+      activeHref="/admin/audit-log"
+      eyebrow="Admin"
+      tone="ADMIN"
+    >
       <h1 className="text-xl font-semibold text-ink-900">Audit Log</h1>
       <p className="mt-1 text-sm text-ink-500">
         Every admin action, with who took it, when, and — where relevant — a before/after

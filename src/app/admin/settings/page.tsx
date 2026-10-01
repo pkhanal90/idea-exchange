@@ -5,7 +5,8 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
+import { getAdminNavItems } from "@/lib/admin-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 import { formatDate } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
 
@@ -13,13 +14,21 @@ export default async function AdminSettingsPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/admin/settings");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { twoFactorEnabled: true, twoFactorEnabledAt: true },
-  });
+  const [user, unreadMessages] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { twoFactorEnabled: true, twoFactorEnabledAt: true },
+    }),
+    getUnreadMessageCount(session.user.id),
+  ]);
 
   return (
-    <DashboardShell navItems={ADMIN_NAV_ITEMS} activeHref="/admin/settings" eyebrow="Admin" tone="ADMIN">
+    <DashboardShell
+      navItems={getAdminNavItems(unreadMessages)}
+      activeHref="/admin/settings"
+      eyebrow="Admin"
+      tone="ADMIN"
+    >
       <h1 className="text-xl font-semibold text-ink-900">Platform Settings</h1>
       <p className="mt-1 text-sm text-ink-500">
         Commission rate, per-category overrides, featured-listing pricing, and categories —
