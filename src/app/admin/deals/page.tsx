@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getAdminNavItems } from "@/lib/admin-nav";
 import { getUnreadMessageCount } from "@/lib/messages";
 import { DealRow } from "@/components/admin/deal-row";
+import { ExportCsvLink } from "@/components/admin/export-csv-link";
 import { Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +40,10 @@ export default async function AdminDealsPage({ searchParams }: AdminDealsPagePro
     getUnreadMessageCount(session.user.id),
   ]);
 
+  const exportParams = new URLSearchParams({
+    ...(stage && { stage }),
+  }).toString();
+
   return (
     <DashboardShell
       navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
@@ -46,10 +51,15 @@ export default async function AdminDealsPage({ searchParams }: AdminDealsPagePro
       eyebrow="Admin"
       tone="ADMIN"
     >
-      <h1 className="text-xl font-semibold text-ink-900">Deals</h1>
-      <p className="mt-1 text-sm text-ink-500">
-        Oversight across every deal — cancel, refund via Stripe, or flag one as disputed.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Deals</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Oversight across every deal — cancel, refund via Stripe, or flag one as disputed.
+          </p>
+        </div>
+        <ExportCsvLink href={`/admin/deals/export${exportParams ? `?${exportParams}` : ""}`} />
+      </div>
 
       <form className="mt-6 flex flex-wrap gap-3">
         <Select name="stage" defaultValue={stage ?? ""} className="max-w-52">

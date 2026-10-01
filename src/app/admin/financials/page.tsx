@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
+import { ExportCsvLink } from "@/components/admin/export-csv-link";
 import { getAdminNavItems } from "@/lib/admin-nav";
 import { getUnreadMessageCount } from "@/lib/messages";
 import { getFinancialsBreakdown } from "@/lib/admin-metrics";
@@ -45,7 +46,10 @@ export default async function AdminFinancialsPage() {
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-ink-900">By category</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink-900">By category</h2>
+          <ExportCsvLink href="/admin/financials/export?type=categories" />
+        </div>
         {data.byCategory.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-sm text-ink-400">
@@ -87,13 +91,16 @@ export default async function AdminFinancialsPage() {
       </section>
 
       <section className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-ink-900">
             Pending payouts ({data.pendingPayoutCount})
           </h2>
-          <span className="text-xs text-ink-500">
-            {formatCurrency(data.pendingPayoutAmount)} held in escrow
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-ink-500">
+              {formatCurrency(data.pendingPayoutAmount)} held in escrow
+            </span>
+            <ExportCsvLink href="/admin/financials/export?type=payouts" />
+          </div>
         </div>
         {data.pendingPayouts.length === 0 ? (
           <Card>

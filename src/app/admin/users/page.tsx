@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getAdminNavItems } from "@/lib/admin-nav";
 import { getUnreadMessageCount } from "@/lib/messages";
 import { UserRow } from "@/components/admin/user-row";
+import { ExportCsvLink } from "@/components/admin/export-csv-link";
 import { Input, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,6 +51,12 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     getUnreadMessageCount(session.user.id),
   ]);
 
+  const exportParams = new URLSearchParams({
+    ...(q && { q }),
+    ...(role && { role }),
+    ...(status && { status }),
+  }).toString();
+
   return (
     <DashboardShell
       navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
@@ -57,10 +64,15 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       eyebrow="Admin"
       tone="ADMIN"
     >
-      <h1 className="text-xl font-semibold text-ink-900">Users</h1>
-      <p className="mt-1 text-sm text-ink-500">
-        Search, filter, suspend or ban accounts, and manage investor accreditation.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Users</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Search, filter, suspend or ban accounts, and manage investor accreditation.
+          </p>
+        </div>
+        <ExportCsvLink href={`/admin/users/export${exportParams ? `?${exportParams}` : ""}`} />
+      </div>
 
       <form className="mt-6 flex flex-wrap gap-3">
         <Input

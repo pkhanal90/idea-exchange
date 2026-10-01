@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getAdminNavItems } from "@/lib/admin-nav";
 import { getUnreadMessageCount } from "@/lib/messages";
 import { ListingRow } from "@/components/admin/listing-row";
+import { ExportCsvLink } from "@/components/admin/export-csv-link";
 import { Input, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,12 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
     getUnreadMessageCount(session.user.id),
   ]);
 
+  const exportParams = new URLSearchParams({
+    ...(q && { q }),
+    ...(status && { status }),
+    ...(category && { category }),
+  }).toString();
+
   return (
     <DashboardShell
       navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
@@ -44,10 +51,16 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
       eyebrow="Admin"
       tone="ADMIN"
     >
-      <h1 className="text-xl font-semibold text-ink-900">Listings</h1>
-      <p className="mt-1 text-sm text-ink-500">
-        Every listing regardless of status — feature, unfeature, or remove from the marketplace.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Listings</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Every listing regardless of status — feature, unfeature, or remove from the
+            marketplace.
+          </p>
+        </div>
+        <ExportCsvLink href={`/admin/listings/export${exportParams ? `?${exportParams}` : ""}`} />
+      </div>
 
       <form className="mt-6 flex flex-wrap gap-3">
         <Input name="q" defaultValue={q} placeholder="Search by title" className="max-w-xs" />
