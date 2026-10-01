@@ -34,7 +34,7 @@ export function CreateListingForm() {
   const errors = state.errors ?? {};
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-6" onSubmit={() => setConsentModalOpen(false)}>
       {state.message && (
         <div className="rounded-lg border border-danger-500/30 bg-danger-50 px-4 py-3 text-sm text-danger-700">
           {state.message}
