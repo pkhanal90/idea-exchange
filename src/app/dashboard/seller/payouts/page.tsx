@@ -7,11 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createConnectOnboardingLinkAction } from "@/app/dashboard/seller/payouts/actions";
-import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
+import { getAccountNavItems } from "@/lib/account-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 
 export default async function PayoutsPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/seller/payouts");
+
+  const unreadMessages = await getUnreadMessageCount(session.user.id);
 
   let user = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
@@ -32,7 +35,12 @@ export default async function PayoutsPage() {
   }
 
   return (
-    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/seller/payouts" eyebrow="Seller" tone="SELLER">
+    <DashboardShell
+      navItems={getAccountNavItems(unreadMessages)}
+      activeHref="/dashboard/seller/payouts"
+      eyebrow="Seller"
+      tone="SELLER"
+    >
       <h1 className="text-xl font-semibold text-ink-900">Payouts</h1>
       <p className="mt-1 text-sm text-ink-500">
         Connect a Stripe account to receive escrow releases when a deal completes. Test mode

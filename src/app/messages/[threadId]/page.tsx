@@ -34,12 +34,12 @@ export default async function MessageThreadPage({ params }: ThreadPageProps) {
 
   const otherParty = thread.sellerId === userId ? thread.buyer : thread.seller;
 
-  const unreadIds = thread.messages
-    .filter((m) => m.senderId !== userId && !m.readAt)
-    .map((m) => m.id);
-  if (unreadIds.length > 0) {
+  const unreadIds = new Set(
+    thread.messages.filter((m) => m.senderId !== userId && !m.readAt).map((m) => m.id),
+  );
+  if (unreadIds.size > 0) {
     await prisma.message.updateMany({
-      where: { id: { in: unreadIds } },
+      where: { id: { in: [...unreadIds] } },
       data: { readAt: new Date() },
     });
   }
@@ -77,6 +77,7 @@ export default async function MessageThreadPage({ params }: ThreadPageProps) {
           body: m.body,
           senderId: m.senderId,
           createdAt: m.createdAt.toISOString(),
+          wasUnread: unreadIds.has(m.id),
         }))}
       />
     </Container>

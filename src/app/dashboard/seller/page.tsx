@@ -9,7 +9,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { ListingStatusBadge, ListingTypeBadge } from "@/components/listings/badges";
 import { CategoryIcon } from "@/components/listings/category-icon";
 import { SubmitForReviewButton } from "@/components/listings/submit-for-review-button";
-import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
+import { getAccountNavItems } from "@/lib/account-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { DollarSign, Eye, Handshake, LayoutGrid, Plus } from "lucide-react";
 
@@ -17,10 +18,13 @@ export default async function SellerDashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/seller");
 
-  const listings = await prisma.listing.findMany({
-    where: { sellerId: session.user.id },
-    orderBy: { updatedAt: "desc" },
-  });
+  const [listings, unreadMessages] = await Promise.all([
+    prisma.listing.findMany({
+      where: { sellerId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+    }),
+    getUnreadMessageCount(session.user.id),
+  ]);
 
   const stats = {
     total: listings.length,
@@ -30,7 +34,12 @@ export default async function SellerDashboardPage() {
   };
 
   return (
-    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/seller" eyebrow="Seller" tone="SELLER">
+    <DashboardShell
+      navItems={getAccountNavItems(unreadMessages)}
+      activeHref="/dashboard/seller"
+      eyebrow="Seller"
+      tone="SELLER"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">My Listings</h1>

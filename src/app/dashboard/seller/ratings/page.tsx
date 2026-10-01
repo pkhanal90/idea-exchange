@@ -5,20 +5,29 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
-import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
+import { getAccountNavItems } from "@/lib/account-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 
 export default async function SellerRatingsPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/seller/ratings");
 
-  const ratings = await prisma.rating.findMany({
-    where: { rateeId: session.user.id },
-    include: { rater: { select: { name: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [ratings, unreadMessages] = await Promise.all([
+    prisma.rating.findMany({
+      where: { rateeId: session.user.id },
+      include: { rater: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    getUnreadMessageCount(session.user.id),
+  ]);
 
   return (
-    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/seller/ratings" eyebrow="Seller" tone="SELLER">
+    <DashboardShell
+      navItems={getAccountNavItems(unreadMessages)}
+      activeHref="/dashboard/seller/ratings"
+      eyebrow="Seller"
+      tone="SELLER"
+    >
       <h1 className="text-xl font-semibold text-ink-900">Ratings</h1>
       <p className="mt-1 text-sm text-ink-500">Feedback left by buyers after a completed deal.</p>
       <div className="mt-6">

@@ -8,6 +8,7 @@ import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { ListingCard } from "@/components/listings/listing-card";
 import { OfferChainRow } from "@/components/offers/offer-chain-row";
 import { ButtonLink } from "@/components/ui/button";
+import { getUnreadMessageCount } from "@/lib/messages";
 import {
   BadgeCheck,
   Bookmark,
@@ -18,23 +19,26 @@ import {
   Unlock,
 } from "lucide-react";
 
-const navItems = [
-  { href: "/dashboard/investor", label: "Deal Room", icon: LayoutGrid },
-  { href: "/dashboard/investor/accreditation", label: "Accreditation", icon: BadgeCheck },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-];
+function getNavItems(unreadMessages: number) {
+  return [
+    { href: "/dashboard/investor", label: "Deal Room", icon: LayoutGrid },
+    { href: "/dashboard/investor/accreditation", label: "Accreditation", icon: BadgeCheck },
+    { href: "/saved", label: "Saved", icon: Bookmark },
+    { href: "/messages", label: "Messages", icon: MessageSquare, badge: unreadMessages || undefined },
+  ];
+}
 
 export default async function InvestorDashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/investor");
 
-  const [{ ndaAcceptances, savedListings, offerChains }, user] = await Promise.all([
+  const [{ ndaAcceptances, savedListings, offerChains }, user, unreadMessages] = await Promise.all([
     getBuyerSideDashboardData(session.user.id),
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { accreditationStatus: true },
     }),
+    getUnreadMessageCount(session.user.id),
   ]);
 
   const isAccredited = user?.accreditationStatus === "SELF_ATTESTED";
@@ -42,7 +46,7 @@ export default async function InvestorDashboardPage() {
 
   return (
     <DashboardShell
-      navItems={navItems}
+      navItems={getNavItems(unreadMessages)}
       activeHref="/dashboard/investor"
       eyebrow="Investor"
       tone="INVESTOR"

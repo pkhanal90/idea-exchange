@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import { Badge } from "@/components/ui/badge";
 import { ROLE_VISUALS } from "@/lib/role-visuals";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -9,6 +10,7 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  badge?: number;
 }
 
 export function DashboardShell({
@@ -60,7 +62,12 @@ export function DashboardShell({
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {Boolean(item.badge) && (
+                    <Badge tone="accent" className="px-1.5 py-0 text-[10px]">
+                      {item.badge}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}

@@ -7,20 +7,27 @@ import { ComingSoon } from "@/components/dashboard/coming-soon";
 import { ListingCard } from "@/components/listings/listing-card";
 import { OfferChainRow } from "@/components/offers/offer-chain-row";
 import { ButtonLink } from "@/components/ui/button";
-import { ACCOUNT_NAV_ITEMS } from "@/lib/account-nav";
+import { getAccountNavItems } from "@/lib/account-nav";
+import { getUnreadMessageCount } from "@/lib/messages";
 import { Bookmark, Handshake, Plus, Unlock } from "lucide-react";
 
 export default async function BuyerDashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/dashboard/buyer");
 
-  const { ndaAcceptances, savedListings, offerChains } = await getBuyerSideDashboardData(
-    session.user.id,
-  );
+  const [{ ndaAcceptances, savedListings, offerChains }, unreadMessages] = await Promise.all([
+    getBuyerSideDashboardData(session.user.id),
+    getUnreadMessageCount(session.user.id),
+  ]);
   const savedIds = new Set(savedListings.map((s) => s.listingId));
 
   return (
-    <DashboardShell navItems={ACCOUNT_NAV_ITEMS} activeHref="/dashboard/buyer" eyebrow="Buyer" tone="BUYER">
+    <DashboardShell
+      navItems={getAccountNavItems(unreadMessages)}
+      activeHref="/dashboard/buyer"
+      eyebrow="Buyer"
+      tone="BUYER"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">My Purchases</h1>
