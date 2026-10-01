@@ -22,7 +22,7 @@ export default async function AdminFinancialsPage() {
 
   return (
     <DashboardShell
-      navItems={getAdminNavItems(unreadMessages)}
+      navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
       activeHref="/admin/financials"
       eyebrow="Admin"
       tone="ADMIN"

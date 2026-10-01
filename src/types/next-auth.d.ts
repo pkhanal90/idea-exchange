@@ -1,4 +1,4 @@
-import type { UserRole, UserStatus } from "@prisma/client";
+import type { AdminRole, UserRole, UserStatus } from "@prisma/client";
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -13,6 +13,9 @@ declare module "next-auth" {
       // outside auth.ts needs the actual timestamp, just yes/no.
       hasSelectedRole: boolean;
       twoFactorEnabled: boolean;
+      // Only meaningful when role === "ADMIN" — null for every marketplace
+      // account.
+      adminRole: AdminRole | null;
     } & DefaultSession["user"];
   }
 
@@ -29,5 +32,6 @@ declare module "next-auth/jwt" {
     status?: UserStatus;
     hasSelectedRole?: boolean;
     twoFactorEnabled?: boolean;
+    adminRole?: AdminRole | null;
   }
 }

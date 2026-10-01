@@ -61,6 +61,18 @@ enum UserRole {
   ADMIN
 }
 
+// Only meaningful when UserRole is ADMIN — scopes which admin dashboard
+// sections a staff account can see/act on. Keeping this a separate field
+// rather than expanding UserRole itself means every existing
+// `role === "ADMIN"` check (proxy.ts, rbac.ts, etc.) keeps working unchanged
+// for any staff account regardless of their specific adminRole.
+enum AdminRole {
+  SUPER_ADMIN
+  MODERATOR
+  SUPPORT
+  FINANCE
+}
+
 enum AccreditationStatus {
   UNSUBMITTED
   SELF_ATTESTED
@@ -82,7 +94,8 @@ model User {
   image         String?
   passwordHash  String?
 
-  role UserRole @default(SELLER)
+  role      UserRole   @default(SELLER)
+  adminRole AdminRole?
 
   // Null until the user has been through /onboarding once — gates the
   // one-time "choose your account type" screen (see src/proxy.ts). Backfilled
@@ -522,6 +535,8 @@ enum AuditAction {
   SPONSORED_PLACEMENT_CREATED
   SPONSORED_PLACEMENT_UPDATED
   SPONSORED_PLACEMENT_REMOVED
+  STAFF_INVITED
+  STAFF_ROLE_CHANGED
 }
 
 // Immutable trail of every admin action — who, what, when, and (where relevant)

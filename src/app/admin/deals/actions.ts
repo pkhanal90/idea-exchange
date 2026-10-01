@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireVerifiedAdmin } from "@/lib/rbac";
+import { requireAdminSection } from "@/lib/rbac";
 import { recordAuditLog } from "@/lib/audit-log";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { sendDealCancelledEmail } from "@/lib/notifications/deal-emails";
 
 export async function adminCancelDealAction(dealId: string, formData: FormData) {
-  const session = await requireVerifiedAdmin();
+  const session = await requireAdminSection("deals");
   const reason = String(formData.get("reason") ?? "").trim() || "Cancelled by admin.";
 
   const deal = await prisma.deal.findUniqueOrThrow({
@@ -55,7 +55,7 @@ export async function adminCancelDealAction(dealId: string, formData: FormData) 
 }
 
 export async function adminMarkDisputedAction(dealId: string, formData: FormData) {
-  const session = await requireVerifiedAdmin();
+  const session = await requireAdminSection("deals");
   const reason = String(formData.get("reason") ?? "").trim() || "Flagged for manual review.";
 
   const deal = await prisma.deal.findUniqueOrThrow({ where: { id: dealId }, select: { stage: true } });
@@ -84,7 +84,7 @@ export async function adminMarkDisputedAction(dealId: string, formData: FormData
 // earlier is an authorization hold, which adminCancelDealAction releases
 // instead via paymentIntents.cancel.
 export async function adminRefundDealAction(dealId: string, formData: FormData) {
-  const session = await requireVerifiedAdmin();
+  const session = await requireAdminSection("deals");
   const reason = String(formData.get("reason") ?? "").trim();
 
   const deal = await prisma.deal.findUniqueOrThrow({ where: { id: dealId } });

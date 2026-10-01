@@ -46,7 +46,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <DashboardShell
-      navItems={getAdminNavItems(unreadMessages)}
+      navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
       activeHref="/admin"
       eyebrow="Admin"
       tone="ADMIN"

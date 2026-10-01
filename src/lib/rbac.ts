@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { STEP_UP_COOKIE, isStepUpValid } from "@/lib/totp-session";
+import { canAccessSection, type AdminSection } from "@/lib/admin-permissions";
 import type { UserRole } from "@prisma/client";
 
 export class ForbiddenError extends Error {}
@@ -38,6 +39,19 @@ export async function requireVerifiedAdmin() {
   const stepUpCookie = (await cookies()).get(STEP_UP_COOKIE)?.value;
   if (!(await isStepUpValid(stepUpCookie, session.user.id))) {
     throw new ForbiddenError("Two-factor verification required");
+  }
+  return session;
+}
+
+// Every admin mutation should use this (not requireVerifiedAdmin() alone)
+// once it belongs to a specific dashboard section — proxy.ts enforces the
+// same section/role mapping at the edge for page views, but a server action
+// is reachable by its own endpoint regardless of which page's middleware
+// gate would normally apply, so the check is repeated here too.
+export async function requireAdminSection(section: AdminSection) {
+  const session = await requireVerifiedAdmin();
+  if (!canAccessSection(session.user.adminRole, section)) {
+    throw new ForbiddenError(`Your admin role doesn't have access to ${section}.`);
   }
   return session;
 }

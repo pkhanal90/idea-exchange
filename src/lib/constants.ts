@@ -1,4 +1,5 @@
 import type {
+  AdminRole,
   DealStage,
   IndustryCategory,
   ListingStage,
@@ -59,6 +60,20 @@ export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
   COMPLETE: "Complete",
   CANCELLED: "Cancelled",
   DISPUTED: "Disputed",
+};
+
+export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
+  SUPER_ADMIN: "Super Admin",
+  MODERATOR: "Moderator",
+  SUPPORT: "Support",
+  FINANCE: "Finance",
+};
+
+export const ADMIN_ROLE_DESCRIPTIONS: Record<AdminRole, string> = {
+  SUPER_ADMIN: "Full access to every admin section.",
+  MODERATOR: "Overview, Moderation, Listings, Messages.",
+  SUPPORT: "Overview, Users, Messages.",
+  FINANCE: "Overview, Deals, Financials.",
 };
 
 export const PRICE_RANGES = [

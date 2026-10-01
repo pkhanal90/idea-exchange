@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { prisma } from "@/lib/prisma";
-import type { UserRole, UserStatus } from "@prisma/client";
+import type { AdminRole, UserRole, UserStatus } from "@prisma/client";
 
 const hasEmailServer = Boolean(process.env.EMAIL_SERVER_HOST);
 
@@ -62,13 +62,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.id) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, status: true, roleSelectedAt: true, twoFactorEnabled: true },
+          select: {
+            role: true,
+            status: true,
+            roleSelectedAt: true,
+            twoFactorEnabled: true,
+            adminRole: true,
+          },
         });
         if (fresh) {
           token.role = fresh.role;
           token.status = fresh.status;
           token.hasSelectedRole = fresh.roleSelectedAt !== null;
           token.twoFactorEnabled = fresh.twoFactorEnabled;
+          token.adminRole = fresh.adminRole;
         }
       }
       return token;
@@ -80,6 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.status = token.status as UserStatus;
         session.user.hasSelectedRole = Boolean(token.hasSelectedRole);
         session.user.twoFactorEnabled = Boolean(token.twoFactorEnabled);
+        session.user.adminRole = (token.adminRole as AdminRole | null) ?? null;
       }
       return session;
     },

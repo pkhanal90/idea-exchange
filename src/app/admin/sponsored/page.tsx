@@ -12,7 +12,7 @@ export default async function AdminSponsoredPage() {
 
   return (
     <DashboardShell
-      navItems={getAdminNavItems(unreadMessages)}
+      navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
       activeHref="/admin/sponsored"
       eyebrow="Admin"
       tone="ADMIN"

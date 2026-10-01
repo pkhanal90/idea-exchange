@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { STEP_UP_COOKIE, isStepUpValid } from "@/lib/totp-session";
+import { canAccessSection, sectionForAdminPath } from "@/lib/admin-permissions";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -87,6 +88,14 @@ export default auth(async (req) => {
         verifyUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(verifyUrl);
       }
+    }
+
+    // Staff roles (Moderator/Support/Finance) only see the dashboard
+    // sections relevant to their job — Overview is the one page every role
+    // can land on, so a disallowed section bounces there instead of looping.
+    const section = sectionForAdminPath(pathname);
+    if (section && !canAccessSection(req.auth.user.adminRole, section)) {
+      return NextResponse.redirect(new URL("/admin", req.nextUrl.origin));
     }
   }
 

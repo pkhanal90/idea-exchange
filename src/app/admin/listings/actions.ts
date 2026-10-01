@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireVerifiedAdmin } from "@/lib/rbac";
+import { requireAdminSection } from "@/lib/rbac";
 import { recordAuditLog } from "@/lib/audit-log";
 
 export async function featureListingAction(listingId: string) {
-  const session = await requireVerifiedAdmin();
+  const session = await requireAdminSection("listings");
 
   const [before, settings] = await Promise.all([
     prisma.listing.findUnique({
@@ -39,7 +39,7 @@ export async function featureListingAction(listingId: string) {
 }
 
 export async function unfeatureListingAction(listingId: string) {
-  const session = await requireVerifiedAdmin();
+  const session = await requireAdminSection("listings");
 
   const before = await prisma.listing.findUnique({
     where: { id: listingId },
@@ -70,7 +70,7 @@ export async function unfeatureListingAction(listingId: string) {
 // the seller-facing DRAFT/REJECTED states). The reason goes into the audit
 // log rather than a new column, same as every other admin action here.
 export async function removeListingAction(listingId: string, formData: FormData) {
-  const session = await requireVerifiedAdmin();
+  const session = await requireAdminSection("listings");
   const reason = String(formData.get("reason") ?? "").trim() || "Removed by admin.";
 
   const before = await prisma.listing.findUnique({

@@ -39,7 +39,7 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
 
   return (
     <DashboardShell
-      navItems={getAdminNavItems(unreadMessages)}
+      navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
       activeHref="/admin/listings"
       eyebrow="Admin"
       tone="ADMIN"

@@ -33,6 +33,8 @@ const AUDIT_ACTIONS: AuditAction[] = [
   "SPONSORED_PLACEMENT_CREATED",
   "SPONSORED_PLACEMENT_UPDATED",
   "SPONSORED_PLACEMENT_REMOVED",
+  "STAFF_INVITED",
+  "STAFF_ROLE_CHANGED",
 ];
 
 function targetHref(targetType: string, targetId: string | null) {
@@ -73,7 +75,7 @@ export default async function AdminAuditLogPage({ searchParams }: AdminAuditLogP
 
   return (
     <DashboardShell
-      navItems={getAdminNavItems(unreadMessages)}
+      navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
       activeHref="/admin/audit-log"
       eyebrow="Admin"
       tone="ADMIN"

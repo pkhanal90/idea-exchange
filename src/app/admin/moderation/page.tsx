@@ -22,7 +22,7 @@ export default async function AdminModerationPage() {
 
   return (
     <DashboardShell
-      navItems={getAdminNavItems(unreadMessages)}
+      navItems={getAdminNavItems(unreadMessages, session.user.adminRole)}
       activeHref="/admin/moderation"
       eyebrow="Admin"
       tone="ADMIN"
