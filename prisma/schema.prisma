@@ -568,6 +568,8 @@ model AuditLog {
 enum RateLimitAction {
   SIGN_IN
   TWO_FACTOR_VERIFY
+  CONTACT_FORM
+  BUG_REPORT
 }
 
 // Sliding-window brute-force guard for auth endpoints. Rows older than the

@@ -24,6 +24,12 @@ export function Footer() {
           <Link href="/#trust" className="hover:text-ink-900">
             Trust & Safety
           </Link>
+          <Link href="/contact" className="hover:text-ink-900">
+            Contact
+          </Link>
+          <Link href="/report-bug" className="hover:text-ink-900">
+            Report a Bug
+          </Link>
         </nav>
       </Container>
       <Container className="border-t border-border py-5">
