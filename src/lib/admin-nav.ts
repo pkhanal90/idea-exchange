@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Gauge,
   Handshake,
   LayoutGrid,
   Megaphone,
@@ -16,7 +17,8 @@ import type { NavItem } from "@/components/dashboard/dashboard-shell";
 // needs a way to surface that rather than leaving it undiscoverable.
 export function getAdminNavItems(unreadMessages = 0): NavItem[] {
   return [
-    { href: "/admin", label: "Moderation", icon: ShieldCheck },
+    { href: "/admin", label: "Overview", icon: Gauge },
+    { href: "/admin/moderation", label: "Moderation", icon: ShieldCheck },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/listings", label: "Listings", icon: LayoutGrid },
     { href: "/admin/deals", label: "Deals", icon: Handshake },

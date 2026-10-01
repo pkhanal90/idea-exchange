@@ -1,11 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import {
   CATEGORY_LABELS,
+  DEAL_STAGE_LABELS,
   LISTING_STATUS_LABELS,
   LISTING_TYPE_LABELS,
   STAGE_LABELS,
 } from "@/lib/constants";
 import type {
+  DealStage,
   IndustryCategory,
   ListingStage,
   ListingStatus,
@@ -38,4 +40,16 @@ export function ListingStatusBadge({ status }: { status: ListingStatus }) {
             ? "ink"
             : "neutral";
   return <Badge tone={tone}>{LISTING_STATUS_LABELS[status]}</Badge>;
+}
+
+export function DealStageBadge({ stage }: { stage: DealStage }) {
+  const tone =
+    stage === "COMPLETE"
+      ? "success"
+      : stage === "CANCELLED"
+        ? "neutral"
+        : stage === "DISPUTED"
+          ? "danger"
+          : "warning";
+  return <Badge tone={tone}>{DEAL_STAGE_LABELS[stage]}</Badge>;
 }

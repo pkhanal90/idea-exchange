@@ -36,6 +36,7 @@ export async function approveListingAction(listingId: string) {
     await sendListingApprovedEmail(before.seller, { id: listingId, title: before.title });
   }
 
+  revalidatePath("/admin/moderation");
   revalidatePath("/admin");
 }
 
@@ -71,5 +72,6 @@ export async function rejectListingAction(listingId: string, formData: FormData)
     await sendListingRejectedEmail(before.seller, { id: listingId, title: before.title }, rejectionNote);
   }
 
+  revalidatePath("/admin/moderation");
   revalidatePath("/admin");
 }

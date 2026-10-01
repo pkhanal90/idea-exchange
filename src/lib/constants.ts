@@ -1,4 +1,5 @@
 import type {
+  DealStage,
   IndustryCategory,
   ListingStage,
   ListingStatus,
@@ -48,6 +49,16 @@ export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
   UNDER_OFFER: "Under Offer",
   SOLD: "Sold",
   ARCHIVED: "Archived",
+};
+
+export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
+  AGREEMENT_PENDING: "Agreement Pending",
+  ESCROW_PENDING: "Escrow Pending",
+  ESCROW_HELD: "Escrow Held",
+  IP_ASSIGNMENT_PENDING: "IP Assignment Pending",
+  COMPLETE: "Complete",
+  CANCELLED: "Cancelled",
+  DISPUTED: "Disputed",
 };
 
 export const PRICE_RANGES = [
