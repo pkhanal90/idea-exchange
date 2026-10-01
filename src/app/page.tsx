@@ -51,8 +51,12 @@ async function getFeaturedListings() {
 async function getFeaturedInvestors() {
   try {
     return await prisma.user.findMany({
-      where: { role: "INVESTOR" },
-      orderBy: { createdAt: "asc" },
+      // Only show investors with an actual profile filled in — an
+      // INVESTOR-role account that's just signed up and clicked through
+      // onboarding has none of this yet, and a blank "?" card undercuts the
+      // whole point of this section (showing credible real buyers).
+      where: { role: "INVESTOR", name: { not: null }, bio: { not: null } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       take: 4,
       select: {
         id: true,
