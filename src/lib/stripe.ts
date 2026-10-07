@@ -19,10 +19,3 @@ export const stripe = secretKey
         },
       },
     ) as Stripe);
-
-// Prototype platform fee taken out of the escrow release, illustrative only.
-export const PLATFORM_FEE_BPS = 500; // 5%
-
-export function platformFeeCents(amountCents: number) {
-  return Math.round((amountCents * PLATFORM_FEE_BPS) / 10_000);
-}

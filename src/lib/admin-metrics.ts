@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_COMMISSION_PERCENT } from "@/lib/commission";
 import type { DealStage, ListingStatus, UserRole } from "@prisma/client";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -50,7 +51,7 @@ export async function getAdminOverviewMetrics() {
     prisma.platformSettings.findUnique({ where: { id: "default" } }),
   ]);
 
-  const commissionPercent = Number(platformSettings?.commissionPercent ?? 10);
+  const commissionPercent = Number(platformSettings?.commissionPercent ?? DEFAULT_COMMISSION_PERCENT);
   const totalVolume = Number(completedDeals._sum.finalAmount ?? 0);
   const commissionEarned = totalVolume * (commissionPercent / 100);
   const pendingPayoutAmount = Number(pendingPayoutDeals._sum.finalAmount ?? 0);
@@ -114,7 +115,7 @@ export async function getFinancialsBreakdown() {
     }),
   ]);
 
-  const defaultRate = Number(settings?.commissionPercent ?? 10);
+  const defaultRate = Number(settings?.commissionPercent ?? DEFAULT_COMMISSION_PERCENT);
   const overrideMap = new Map(overrides.map((o) => [o.category, Number(o.commissionPercent)]));
 
   const byCategory = new Map<
@@ -218,7 +219,7 @@ export async function getOverviewChartData() {
     prisma.platformSettings.findUnique({ where: { id: "default" } }),
   ]);
 
-  const commissionPercent = Number(settings?.commissionPercent ?? 10);
+  const commissionPercent = Number(settings?.commissionPercent ?? DEFAULT_COMMISSION_PERCENT);
   const dealPoints = completedAll.map((d) => ({
     date: d.completedAt as Date,
     value: Number(d.finalAmount ?? 0),

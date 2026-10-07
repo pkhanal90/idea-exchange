@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { stripe, stripeEnabled, platformFeeCents } from "@/lib/stripe";
+import { stripe, stripeEnabled } from "@/lib/stripe";
+import { getCommissionPercent, commissionFeeCents } from "@/lib/commission";
 import {
   sendEscrowPendingEmail,
   sendEscrowHeldEmail,
@@ -69,6 +70,7 @@ export async function createEscrowCheckoutAction(dealId: string) {
 
   const origin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const amountCents = Math.round(Number(deal.finalAmount) * 100);
+  const commissionPercent = await getCommissionPercent(deal.listing.category);
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -88,10 +90,10 @@ export async function createEscrowCheckoutAction(dealId: string) {
     ],
     payment_intent_data: {
       capture_method: "manual", // escrow-style hold, not instant capture
-      application_fee_amount: platformFeeCents(amountCents),
+      application_fee_amount: commissionFeeCents(amountCents, commissionPercent),
       transfer_data: { destination: deal.seller.stripeConnectAccountId },
     },
-    metadata: { dealId },
+    metadata: { dealId, commissionPercent: String(commissionPercent) },
     success_url: `${origin}/deals/${dealId}?checkout=success`,
     cancel_url: `${origin}/deals/${dealId}?checkout=cancelled`,
   });
