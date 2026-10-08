@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { VisitBeacon } from "@/components/analytics/visit-beacon";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <SessionProvider>
+          <VisitBeacon />
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />

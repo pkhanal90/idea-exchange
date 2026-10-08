@@ -10,6 +10,7 @@ export type AdminSection =
   | "listings"
   | "deals"
   | "financials"
+  | "acquisition"
   | "sponsored"
   | "settings"
   | "audit-log"
@@ -24,6 +25,7 @@ export const ADMIN_SECTION_ACCESS: Record<AdminRole, AdminSection[]> = {
     "listings",
     "deals",
     "financials",
+    "acquisition",
     "sponsored",
     "settings",
     "audit-log",
@@ -52,6 +54,7 @@ export function sectionForAdminPath(pathname: string): AdminSection | null {
   if (pathname.startsWith("/admin/listings")) return "listings";
   if (pathname.startsWith("/admin/deals")) return "deals";
   if (pathname.startsWith("/admin/financials")) return "financials";
+  if (pathname.startsWith("/admin/acquisition")) return "acquisition";
   if (pathname.startsWith("/admin/sponsored")) return "sponsored";
   if (pathname.startsWith("/admin/settings")) return "settings";
   if (pathname.startsWith("/admin/audit-log")) return "audit-log";

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminSection } from "@/lib/rbac";
 import { toCsv, csvResponse } from "@/lib/csv";
 import { formatDate } from "@/lib/utils";
+import { HEARD_ABOUT_LABELS } from "@/lib/acquisition";
 import type { Prisma, UserRole, UserStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -36,12 +37,16 @@ export async function GET(req: NextRequest) {
       status: true,
       accreditationStatus: true,
       createdAt: true,
+      heardAbout: true,
+      acqSource: true,
+      acqMedium: true,
+      acqCampaign: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
   const csv = toCsv(
-    ["Name", "Email", "Company", "Role", "Status", "Accreditation", "Signed up"],
+    ["Name", "Email", "Company", "Role", "Status", "Accreditation", "Signed up", "Heard about (self-reported)", "Source", "Medium", "Campaign"],
     users.map((u) => [
       u.name,
       u.email,
@@ -50,6 +55,10 @@ export async function GET(req: NextRequest) {
       u.status,
       u.accreditationStatus,
       formatDate(u.createdAt),
+      u.heardAbout ? (HEARD_ABOUT_LABELS[u.heardAbout] ?? u.heardAbout) : "",
+      u.acqSource,
+      u.acqMedium,
+      u.acqCampaign,
     ]),
   );
 

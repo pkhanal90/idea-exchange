@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Compass,
   Gauge,
   Handshake,
   LayoutGrid,
@@ -29,6 +30,7 @@ export function getAdminNavItems(
     { href: "/admin/listings", label: "Listings", icon: LayoutGrid, section: "listings" },
     { href: "/admin/deals", label: "Deals", icon: Handshake, section: "deals" },
     { href: "/admin/financials", label: "Financials", icon: BarChart3, section: "financials" },
+    { href: "/admin/acquisition", label: "Acquisition", icon: Compass, section: "acquisition" },
     { href: "/admin/sponsored", label: "Sponsored", icon: Megaphone, section: "sponsored" },
     {
       href: "/messages",

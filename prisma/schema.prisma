@@ -127,6 +127,17 @@ model User {
 
   lastLoginAt DateTime?
 
+  // Acquisition: how this person found us. heardAbout is their own answer on
+  // the onboarding screen (a key from src/lib/acquisition.ts); acq* is the
+  // first-touch attribution captured automatically from UTM params/referrer.
+  heardAbout       String?
+  heardAboutDetail String?
+  acqSource        String?
+  acqMedium        String?
+  acqCampaign      String?
+  acqReferrer      String?
+  acqLanding       String?
+
   // Stripe Connect (seller payout) / Stripe Customer (buyer payment method)
   stripeConnectAccountId String?
   stripeConnectOnboarded Boolean @default(false)
@@ -570,6 +581,7 @@ enum RateLimitAction {
   TWO_FACTOR_VERIFY
   CONTACT_FORM
   BUG_REPORT
+  TRACK_VISIT
 }
 
 // Sliding-window brute-force guard for auth endpoints. Rows older than the
@@ -698,4 +710,20 @@ model AnalyticsEvent {
 
   @@index([name, createdAt])
   @@index([userId])
+}
+
+// One row per browsing session (not per page view) — anonymous, no IP or
+// persistent visitor ID stored. Powers the visits → sign-ups funnel in the
+// admin Acquisition report.
+model SiteVisit {
+  id        String   @id @default(cuid())
+  source    String // normalized: "tiktok", "google", "direct", …
+  medium    String // "social", "organic", "referral", "direct", or utm_medium
+  campaign  String?
+  referrer  String? // referrer hostname only
+  landing   String // landing path, no query string
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
 }

@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/container";
 import { LogoMark } from "@/components/layout/logo-mark";
 import { chooseRoleAction } from "@/app/onboarding/actions";
 import { ROLE_VISUALS } from "@/lib/role-visuals";
+import { HeardAboutField } from "@/components/onboarding/heard-about-field";
 import { ShoppingBag, Store, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { UserRole } from "@prisma/client";
@@ -43,13 +44,15 @@ export default async function OnboardingPage() {
           </p>
         </div>
 
-        <div className="mx-auto mt-10 grid max-w-4xl gap-5 sm:grid-cols-3">
-          {OPTIONS.map(({ role, icon: Icon, body }) => {
-            const visual = ROLE_VISUALS[role];
-            return (
-              <form key={role} action={chooseRoleAction.bind(null, role)} className="flex">
+        <form className="mx-auto mt-10 max-w-4xl">
+          <div className="grid gap-5 sm:grid-cols-3">
+            {OPTIONS.map(({ role, icon: Icon, body }) => {
+              const visual = ROLE_VISUALS[role];
+              return (
                 <button
+                  key={role}
                   type="submit"
+                  formAction={chooseRoleAction.bind(null, role)}
                   className="flex w-full flex-col items-start gap-4 rounded-xl border border-border bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-400"
                 >
                   <span
@@ -65,10 +68,12 @@ export default async function OnboardingPage() {
                     Continue as {visual.label} →
                   </span>
                 </button>
-              </form>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          <HeardAboutField />
+        </form>
       </Container>
     </div>
   );
