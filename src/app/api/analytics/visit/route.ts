@@ -33,9 +33,11 @@ export async function POST(req: NextRequest) {
   const referrer = typeof body.referrer === "string" ? body.referrer.slice(0, 500) : "";
   if (!path.startsWith("/") || IGNORED_PREFIXES.some((p) => path.startsWith(p))) return ok;
 
-  // Staff browsing their own site shouldn't pollute the numbers.
+  // Only anonymous visitors are acquisition traffic. Signed-in members (and
+  // staff) are skipped; otherwise every magic-link click, which opens a fresh
+  // tab and so a fresh session, would count as a new "direct" visit.
   const session = await auth();
-  if (session?.user?.role === "ADMIN") return ok;
+  if (session?.user) return ok;
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const limit = await checkRateLimit({
