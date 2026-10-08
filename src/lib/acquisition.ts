@@ -27,6 +27,16 @@ export function isHeardAboutKey(value: string): boolean {
   return value in HEARD_ABOUT_LABELS;
 }
 
+// Campaign names are lowercased and hyphenated so a spend entry typed as
+// "Launch Day 1" lines up with the utm_campaign "launch-day-1" in the report.
+export function slugCampaign(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+}
+
 export type Touch = {
   source: string;
   medium: string;

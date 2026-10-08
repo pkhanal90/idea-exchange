@@ -35,6 +35,8 @@ const AUDIT_ACTIONS: AuditAction[] = [
   "SPONSORED_PLACEMENT_REMOVED",
   "STAFF_INVITED",
   "STAFF_ROLE_CHANGED",
+  "CAMPAIGN_SPEND_ADDED",
+  "CAMPAIGN_SPEND_REMOVED",
 ];
 
 function targetHref(targetType: string, targetId: string | null) {

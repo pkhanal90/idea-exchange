@@ -1,7 +1,38 @@
 import { NextRequest } from "next/server";
 import { requireAdminSection } from "@/lib/rbac";
-import { getAcquisitionReport, parseRange } from "@/lib/acquisition-metrics";
+import { getAcquisitionReport, parseRange, type FunnelRow } from "@/lib/acquisition-metrics";
 import { toCsv, csvResponse } from "@/lib/csv";
+
+const dollars = (cents: number) => (cents / 100).toFixed(2);
+
+function funnelCsv(rows: FunnelRow[], byCampaign: boolean) {
+  return toCsv(
+    [
+      byCampaign ? "Campaign" : "Source",
+      byCampaign ? "Source" : "Medium",
+      "Visits",
+      "Members",
+      "Signed NDA",
+      "Made offer",
+      "Deals",
+      "Deal volume ($)",
+      "Spend ($)",
+      "Cost per member ($)",
+    ],
+    rows.map((r) => [
+      byCampaign ? r.campaign : r.source,
+      byCampaign ? r.source : r.medium,
+      r.visits,
+      r.members,
+      r.ndaMembers,
+      r.offerMembers,
+      r.deals,
+      r.dealVolume,
+      dollars(r.spendCents),
+      r.costPerMemberCents === null ? "" : dollars(r.costPerMemberCents),
+    ]),
+  );
+}
 
 export async function GET(req: NextRequest) {
   await requireAdminSection("acquisition");
@@ -11,12 +42,21 @@ export async function GET(req: NextRequest) {
   const report = await getAcquisitionReport(range);
 
   if (type === "campaigns") {
+    return csvResponse(funnelCsv(report.byCampaign, true), `acquisition-campaigns-${range}.csv`);
+  }
+  if (type === "spend") {
     return csvResponse(
       toCsv(
-        ["Campaign", "Source", "Visits", "New members"],
-        report.byCampaign.map((r) => [r.campaign, r.source, r.visits, r.signups]),
+        ["Date", "Channel", "Campaign", "Amount ($)", "Note"],
+        report.spendEntries.map((e) => [
+          e.spentOn.toISOString().slice(0, 10),
+          e.source,
+          e.campaign,
+          dollars(e.amountCents),
+          e.note,
+        ]),
       ),
-      `acquisition-campaigns-${range}.csv`,
+      `acquisition-spend-${range}.csv`,
     );
   }
   if (type === "survey") {
@@ -28,11 +68,5 @@ export async function GET(req: NextRequest) {
       `acquisition-survey-${range}.csv`,
     );
   }
-  return csvResponse(
-    toCsv(
-      ["Source", "Medium", "Visits", "New members", "Conversion %"],
-      report.bySource.map((r) => [r.source, r.medium, r.visits, r.signups, r.visits === 0 ? "" : r.conversion]),
-    ),
-    `acquisition-sources-${range}.csv`,
-  );
+  return csvResponse(funnelCsv(report.bySource, false), `acquisition-sources-${range}.csv`);
 }

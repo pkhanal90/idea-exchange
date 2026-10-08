@@ -4,14 +4,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Input, Label, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { LINK_BUILDER_SOURCES } from "@/lib/acquisition";
-
-const slug = (v: string) =>
-  v
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 60);
+import { LINK_BUILDER_SOURCES, slugCampaign as slug } from "@/lib/acquisition";
 
 // Builds a tagged link for one post or message, so every channel (and every
 // individual video) shows up as its own row in the Acquisition report.

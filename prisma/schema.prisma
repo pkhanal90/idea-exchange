@@ -161,6 +161,7 @@ model User {
   ratingsReceived          Rating[]             @relation("RatingsReceived")
   savedListings            SavedListing[]
   auditLogEntries          AuditLog[]           @relation("AuditActor")
+  campaignSpendEntries     CampaignSpend[]      @relation("CampaignSpendCreator")
   sponsoredPlacements      SponsoredPlacement[] @relation("SponsoredPlacementCreatedBy")
   featuredListingPurchases FeaturedListing[]    @relation("FeaturedListingPurchasedBy")
 
@@ -548,6 +549,8 @@ enum AuditAction {
   SPONSORED_PLACEMENT_REMOVED
   STAFF_INVITED
   STAFF_ROLE_CHANGED
+  CAMPAIGN_SPEND_ADDED
+  CAMPAIGN_SPEND_REMOVED
 }
 
 // Immutable trail of every admin action — who, what, when, and (where relevant)
@@ -726,4 +729,23 @@ model SiteVisit {
 
   @@index([createdAt])
   @@index([source, createdAt])
+}
+
+// Marketing spend entered by hand (ads, boosts, tools, freelancers), so the
+// Acquisition report can show cost per member by source and campaign. `source`
+// and `campaign` use the same normalized values as SiteVisit / User.acq*.
+model CampaignSpend {
+  id          String   @id @default(cuid())
+  source      String
+  campaign    String?
+  amountCents Int
+  spentOn     DateTime
+  note        String?
+
+  createdBy   User     @relation("CampaignSpendCreator", fields: [createdById], references: [id])
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([spentOn])
+  @@index([source, spentOn])
 }
